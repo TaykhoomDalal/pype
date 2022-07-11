@@ -3,6 +3,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import math 
+import re
 
 # Code in this file was adapted from the pyPheWAS package, specifically from
 # the pyPhewasCorev2.py file. I modified the code to run the pheWAS with non ICD-9/10
@@ -33,6 +34,8 @@ def fit_pheno_model(variant, phenotype, covariate_data = None, covariates = None
 	:returns: regression results
 	:rtype: list
 	"""
+	# rename variant column name by removing all non-alphanumeric characters from variant name
+	variant.columns = [re.sub('[^0-9a-zA-Z]+', '', x) for x in variant.columns]
 
 	data = variant.copy()
 	data['y'] = phenotype
@@ -41,6 +44,9 @@ def fit_pheno_model(variant, phenotype, covariate_data = None, covariates = None
 	if covariates != None:
 		for cov in covariates:
 			data[cov] = covariate_data[cov]
+
+		# remove all non-alphanumeric characters from covariate names
+		covariates = [re.sub(r'[^a-zA-Z0-9]+','', cov) for cov in covariates]
 		covariates = " ".join(covariates)
 	
 	# if there are any missing values in the phenotype vector, drop the row from the data
@@ -50,9 +56,8 @@ def fit_pheno_model(variant, phenotype, covariate_data = None, covariates = None
 	predictors = covariates.replace(" ", " + ")
 	f = variant.columns.tolist()[0] + ' ~ y + ' + predictors
 
-	# replace all periods and underscores with empty space to deal with statsmodels issue with '.' in variable names
-	f = f.replace('.', '').replace('_','')
-	data.columns = [x.replace('.', '').replace('_','') for x in data.columns]
+	# replace all non-alphanumerics with empty space to deal with statsmodels issues
+	data.columns = [re.sub(r'[^a-zA-Z0-9]+','', x) for x in data.columns]
 
 	try:
 		if reg == False:
