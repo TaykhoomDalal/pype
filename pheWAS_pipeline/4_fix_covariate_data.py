@@ -139,7 +139,7 @@ def main():
         dropped_cols = [col for col in all_covariates if col not in remove_columns]
         cols_to_keep = [col for col in pheno if col not in dropped_cols]
 
-        print(file_prefix, cols_to_keep)
+        print(file_prefix, dropped_cols)
 
         remaining_covariates = [col for col in all_covariates if col not in dropped_cols] 
         # fixed covariate file path
