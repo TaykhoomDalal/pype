@@ -478,7 +478,8 @@ def main():
 		directory = '.'
 
 	dir_path = directory + '/' + name #time.strftime("%Y_%m_%d_%H_%M_%S")
-	os.mkdir(dir_path)
+	shutil.rmtree(dir_path, ignore_errors=True)
+	os.makedirs(dir_path)
 
 	# make directories for intermediate files
 	pheno_dir = dir_path + '/pheno'
