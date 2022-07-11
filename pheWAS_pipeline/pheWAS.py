@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import math 
 import re
+import traceback
 
 # Code in this file was adapted from the pyPheWAS package, specifically from
 # the pyPhewasCorev2.py file. I modified the code to run the pheWAS with non ICD-9/10
@@ -34,8 +35,8 @@ def fit_pheno_model(variant, phenotype, covariate_data = None, covariates = None
 	:returns: regression results
 	:rtype: list
 	"""
-	# rename variant column name by removing all non-alphanumeric characters from variant name
-	variant.columns = [re.sub('[^0-9a-zA-Z]+', '', x) for x in variant.columns]
+	# rename variant column to genotype
+	variant = variant.rename(columns={variant.columns[0]: 'genotype'})
 
 	data = variant.copy()
 	data['y'] = phenotype
@@ -77,11 +78,10 @@ def fit_pheno_model(variant, phenotype, covariate_data = None, covariates = None
 		reg_result = [-np.log10(p), p, beta, conf_int, stderr]  # collect results
 
 	except Exception as e:
-		print('ERROR (%s) computing regression for phenotype %s' %(e, phenotype.name))
-		print(data)
-		print(phenotype)
-		print(covariate_data)
-		reg_result = [np.nan, np.nan, np.nan, np.nan, np.nan]
+		traceback.print_exc()
+		print('Error when computing regression for phenotype %s' %(phenotype.name))
+		exit()
+		# reg_result = [np.nan, np.nan, np.nan, np.nan, np.nan]
 
 	return reg_result
 
@@ -170,14 +170,37 @@ def run_phewas(phenotypes, genotypes, non_cov_pheno_list, reg, covariates = None
 	for v in range(num_variants):
 		variant_i = genotypes.iloc[:, [v]]
 
+		# its possible that there are NaN values in the variant data, so we need to drop them
+		variant_non_nan_samples_num = variant_i.shape[0] - variant_i.isnull().sum()[0]
+
+		# if we have a lot fewer observations (samples) than variables (covariates + our phenotype),
+		# then there is no unique solution to OLS (unless we use regularization - user parameter)
+		if variant_non_nan_samples_num < len(covariates) + 1 and reg == False:
+			print('Variant %s dropped - it has %d samples, less than the number of covariates (%d)' %(variant_i.columns[0], variant_non_nan_samples_num, len(covariates) + 1))
+			continue
+		
+		# to prevent false positives, only run regressions if more than thresh records have positive values
+		# if our phenotype is a number, but has less than 1000 samples, then we can't do regression
+		if variant_non_nan_samples_num < thresh:
+			print('Variant %s dropped - it has %d samples, less than the threshold (%d)' %(variant_i.columns[0], variant_non_nan_samples_num, thresh))
+			continue
+
+		# drop the rows with NaN values
+		variant_i = variant_i.dropna(axis = 0)
+
 		for p in tqdm(range(num_pheno), desc="Running Regressions for Variant %s" %(variant_i.columns[0])):
 			phenotype_i = phenotypes[non_cov_pheno_list[p]]
-			non_nan_samples_num = phenotype_i.shape[0] - phenotype_i.isnull().sum()
+
+			pheno_non_nan_samples_num = phenotype_i.shape[0] - phenotype_i.isnull().sum()
+
 			# run the regression
 			stat_info = fit_pheno_model(variant_i, phenotype_i, covariate_data, covariates, reg)
 
+			# whichever number is smaller, that is the number of samples we used in the regression
+			used_samples = min(pheno_non_nan_samples_num, variant_non_nan_samples_num)
+
 			# save regression data
-			info = [non_cov_pheno_list[p], genotypes.columns[v], str(non_nan_samples_num) + total_samples] + stat_info 
+			info = [non_cov_pheno_list[p], genotypes.columns[v], str(used_samples) + total_samples] + stat_info 
 
 			regressions.loc[index] = info
 			index +=1
