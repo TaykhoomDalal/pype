@@ -486,12 +486,20 @@ def main():
 	geno_dir = dir_path + '/geno'
 	pheWAS_dir = dir_path + '/pheWAS'
 	data_fields_dir = dir_path + '/data_fields'
-	os.mkdir(pheno_dir)
-	os.mkdir(raw_dir)
-	os.mkdir(geno_dir)
-	os.mkdir(pheWAS_dir)
-	os.mkdir(data_fields_dir)
 
+	# try deleting the directory, if it exists, then directory will be deleted, if not, the error is ignored (EAFP)
+	shutil.rmtree(pheno_dir, ignore_errors=True)
+	shutil.rmtree(raw_dir, ignore_errors=True)
+	shutil.rmtree(geno_dir, ignore_errors=True)
+	shutil.rmtree(pheWAS_dir, ignore_errors=True)
+	shutil.rmtree(data_fields_dir, ignore_errors=True)
+
+	os.makedirs(pheno_dir)
+	os.makedirs(raw_dir)
+	os.makedirs(geno_dir)
+	os.makedirs(pheWAS_dir)
+	os.makedirs(data_fields_dir)
+	
 	field_dict = grab_data_fields(url = url, out_dir = data_fields_dir)
 
 	# copy covariates file to the new directory to keep all data field files together
