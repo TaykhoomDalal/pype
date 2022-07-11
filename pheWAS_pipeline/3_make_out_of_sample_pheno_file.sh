@@ -7,8 +7,8 @@
 #SBATCH -e /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/batch_logs/make_pheno_%j.err  # File to which STDERR will be written, including job ID (%j)
 
 python3 /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/pheWAS_pipeline/3_make_out_of_sample_pheno_file.py \
-        --sample_files /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/in_pop_IDs/Abdomen_in_sample_pop_IDs.txt \
-        --pheno_file /home/tad368/data_dir/pheno/pheno.tab \
+        --sample_files /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/in_pop_IDs/HeartMRI_in_sample_pop_IDs.txt \
+        --pheno_file /home/tad368/orig_phenos/ukb41230.tab \
         --fields /home/tad368/data_dir/data_fields/data_fields.txt \
         --covariates_file /home/tad368/data_dir/data_fields/cov_fields.txt \
         --out_dir /home/tad368/data_dir/pheno \
