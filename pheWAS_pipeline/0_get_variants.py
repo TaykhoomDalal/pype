@@ -13,9 +13,9 @@ def main():
     args = parser.parse_args()
     input = args.input # downloaded input files from FUMA https://fuma.ctglab.nl/browse/488 and 487
     output = args.output
-    p_val = args.p_val
-    chrom = args.chrom
-    rsid = args.rsid
+    p_val = args.p_val # P_BOLT_LMM_INF
+    chrom = args.chrom #CHR
+    rsid = args.rsid # SNP
 
     # load the input file
     variants = pd.read_csv(input, sep="\t", usecols = [chrom, rsid, p_val]).sort_values(by=p_val)
