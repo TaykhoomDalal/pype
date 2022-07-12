@@ -27,7 +27,7 @@ dict_UKB_fields_to_names =  {'f.31.0.0': 'Sex',
 							'f.22001.0.0': 'Sex_genetic'}
 
 # major ethnic groups in UKBB
-ethnicity_groups = ['Ethnicity.White', 'Ethnicity.Asian', 'Ethnicity.Black', 'Ethnicity.Other']
+ethnicity_groups = ['Ethnicity.White']#, 'Ethnicity.Asian', 'Ethnicity.Black', 'Ethnicity.Other']
 
 def grab_data_fields(url, out_dir):
 	
@@ -440,6 +440,7 @@ def save_top_variants(out_dir, field_dict):
 	# Save the results to a file
 	results.to_csv(output, sep = '\t', index=False)
 
+	top_SNPS.sort_values(by='p-val', inplace=True)
 	# Save the top SNPs (based on pval) to a file
 	top_SNPS.to_csv(top_SNPS_file, sep = '\t', index=False)
 
