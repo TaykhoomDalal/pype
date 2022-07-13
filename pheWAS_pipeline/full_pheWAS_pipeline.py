@@ -324,7 +324,7 @@ def run_pheWAS(sample_list, pheno_dict, out_dir, raw_dir, data_fields_dir, reg):
 		file_prefix = os.path.basename(file).split('_')[0]
 
 		# find the raw genotype files with the same prefix
-		raw_geno_files = [os.path.join(raw_dir, f) for f in os.listdir(raw_dir) if f.endswith('.raw') and os.path.basename(f).startswith(file_prefix)]
+		raw_geno_files = [os.path.join(raw_dir, f) for f in os.listdir(raw_dir) if f.endswith('.raw') and os.path.basename(f).startswith(file_prefix + '_')]
 		
 		# read covariate fixed headers file into list
 		with open(data_fields_dir + '/' +  file_prefix + '_fixed_cov_fields.txt', "r") as f:
