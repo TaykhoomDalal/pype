@@ -1,10 +1,11 @@
 #!/bin/bash
 #SBATCH -c 4                                                                                        # Request four cores
-#SBATCH -t 1-00:00                                                                               # Runtime in D-HH:MM format
+#SBATCH -t 2-00:00                                                                               # Runtime in D-HH:MM format
 #SBATCH -p medium                                                                                    # Partition to run in
 #SBATCH --mem=128000M                                                                                # Memory total in MiB (for all cores)
 #SBATCH -o /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/batch_logs/heart_pheWAS_pipeline%j.out   # File to which STDOUT will be written, including job ID (%j)
 #SBATCH -e /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/batch_logs/heart_pheWAS_pipeline%j.err   # File to which STDERR will be written, including job ID (%j)
+#SBATCH --mail-type=ALL                                                                           # Type of email notification- BEGIN,END,FAIL,ALL
 
 python3 ~/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/pheWAS_pipeline/full_pheWAS_pipeline.py \
                                 --phenotype /home/tad368/orig_phenos/ukb41230.tab \

@@ -5,6 +5,7 @@
 #SBATCH --mem=64000M                                                                                # Memory total in MiB (for all cores)
 #SBATCH -o /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/batch_logs/make_pheno_%j.out  # File to which STDOUT will be written, including job ID (%j)
 #SBATCH -e /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/batch_logs/make_pheno_%j.err  # File to which STDERR will be written, including job ID (%j)
+#SBATCH --mail-type=ALL                                                                           # Type of email notification- BEGIN,END,FAIL,ALL
 
 python3 /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/pheWAS_pipeline/3_make_out_of_sample_pheno_file.py \
         --sample_files /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/in_pop_IDs/HeartMRI_in_sample_pop_IDs.txt \
