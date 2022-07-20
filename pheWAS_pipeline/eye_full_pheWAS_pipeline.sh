@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -c 4                                                                                        # Request four cores
-#SBATCH -t 1-00:00                                                                               # Runtime in D-HH:MM format
+#SBATCH -t 2-00:00                                                                               # Runtime in D-HH:MM format
 #SBATCH -p medium                                                                                    # Partition to run in
 #SBATCH --mem=128000M                                                                                # Memory total in MiB (for all cores)
 #SBATCH -o /home/tad368/PheWAS-and-GWAS-Diabetes-Correlation-pipeline/batch_logs/eyes_pheWAS_pipeline%j.out   # File to which STDOUT will be written, including job ID (%j)
