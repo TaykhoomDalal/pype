@@ -1,4 +1,5 @@
-import statsmodels.api as smf
+import statsmodels.formula.api as smf
+import statsmodels.genmod.generalized_linear_model as sm_glm
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -6,40 +7,18 @@ import math
 import re
 import traceback
 
-# Code in this file was adapted from the pyPheWAS package, specifically from
-# the pyPhewasCorev2.py file. I modified the code to run the pheWAS with non ICD-9/10
-# codes as well as added functionality that was required for my project.
-# The original code can be found at https://github.com/MASILab/pyPheWAS/blob/master/pyPheWAS/pyPhewasCorev2.py
+# Code in this file was inspired from the pyPheWAS package, specifically from the pyPhewasCorev2.py file.
 
-out_cols = ['Data_Field', 'rsID', 'Samples', '\"-log(p)\"','p-val', 'beta', 'Conf-interval beta', 'std_error']
+out_cols = ['Data_Field', 'rsID', 'Samples', '\"-log(p)\"','p-val', 'beta', 'std_error']
 
-def fit_pheno_model(variant, phenotype, covariate_data = None, covariates = None, reg = False) -> list:
-	"""
-	Runs a linear regression for a specific phenotype vector
+def run_regresssion(variant, phenotype, covariate_data = None, covariates = None, regularization = False) -> list:
 
-	The returned results list consists of (in order) the -log\ :sub:`10`\ (p-value), p-value, beta, beta's confidence interval,
-	and beta's standard error, estimated from the lin model for the ``phenotype`` variable.
-
-	:param variant: variant data for each individual
-	:param phenotype: the aggregate phenotype vector
-	:param covariate_data: covariate data for each individual
-	:param covariates: *[optional]* covariates to include in the regressions separated by '+' (e.g. 'sex+ageAtDx')
-	:param reg: *[optional]* regularized maximum likelihood optimization flag (False [default] = not regularized; True = regularized)
-
-	:type variant: pandas DataFrame
-	:type phenotype: pandas Series
-	:type covariate_data: pandas DataFrame
-	:type covariates: list of covariate names
-	:type reg: bool
-
-	:returns: regression results
-	:rtype: list
-	"""
 	# rename variant column to genotype
 	variant = variant.rename(columns={variant.columns[0]: 'genotype'})
 
-	data = variant.copy()
-	data['y'] = phenotype
+	# add genotype and phenotype to dataframe
+	data = variant.copy(deep = True)
+	data['phenotype'] = phenotype
 
 	# append '+' to covariates (if there are any) -> makes definition of 'f' more elegant
 	if covariates != None:
@@ -51,31 +30,24 @@ def fit_pheno_model(variant, phenotype, covariate_data = None, covariates = None
 		covariates = " ".join(covariates)
 	
 	# if there are any missing values in the phenotype vector, drop the row from the data
-	data.dropna(axis = 0, how = 'any', subset = ['y'], inplace = True)
+	data.dropna(axis = 0, how = 'any', subset = ['phenotype'], inplace = True)
 
 	# create formula for regression
-	predictors = covariates.replace(" ", " + ")
-	f = variant.columns.tolist()[0] + ' ~ y + ' + predictors
+	covariates = covariates.replace(" ", " + ")
+	f = 'phenotype ~ genotype + ' + covariates
 
 	# replace all non-alphanumerics with empty space to deal with statsmodels issues
 	data.columns = [re.sub(r'[^a-zA-Z0-9]+','', x) for x in data.columns]
 
 	try:
-		if reg == False:
-			# fit logit without regulatization
-			model = smf.OLS.from_formula(formula = f, data = data).fit()
-		else:
-			# fit with regularization
-			variant_name = variant.columns[0]
-			model = smf.OLS(data[variant_name], data[[phenotype.name] + covariates]).fit_regularized(method='l1', alpha=0.1)
+		# need to spend some time figuring out w
+		results = smf.ols(formula = f, data = data).fit()
 
 		# get results
-		p = model.pvalues.y
-		beta = model.params.y
-		conf = model.conf_int()
-		conf_int = '[%s,%s]' % (conf[0]['y'], conf[1]['y'])
-		stderr = model.bse.y
-		reg_result = [-np.log10(p), p, beta, conf_int, stderr]  # collect results
+		p = results.pvalues[1]
+		beta = results.params[1]
+		stderr = results.bse[1]
+		reg_result = [-np.log10(p), p, beta, stderr]  # collect results
 
 	except Exception as e:
 		traceback.print_exc()
@@ -86,29 +58,6 @@ def fit_pheno_model(variant, phenotype, covariate_data = None, covariates = None
 	return reg_result
 
 def run_phewas(phenotypes, genotypes, non_cov_pheno_list, reg, covariates = None, thresh=1000) -> pd.DataFrame:
-	"""
-	Iterate over all phenotypes, running a linear regression against each variant in the genotype
-	
-	The returned DataFrame includes the phenotype data field, variant in question, number of samples,
-	-log\ :sub:`10`\ (p-value), p-value, beta, beta's confidence interval, standard error
-
-	:param phenotypes: phenotype feature matrix
-	:param genotypes: variant data
-	:param non_cov_pheno_list: list of non-covariate phenotypes
-	:param reg: whether to include regularization in the regression
-	:param covariates: *[optional]* covariates to include in the regressions
-	:param thresh: *[optional]* threshold for the minimum number of samples in a phenotype
-	
-	:type phenotypes: pandas DataFrame
-	:type genotypes: pandas DataFrame
-	:type non_cov_pheno_list: list
-	:type reg: bool
-	:type covariates: list
-	:type thresh: int
-
-	:returns: regression results for each phenotype
-	:rtype: pandas DataFrame
-	"""
 
 	num_pheno = len(non_cov_pheno_list)
 	num_variants = genotypes.shape[1]
@@ -134,13 +83,14 @@ def run_phewas(phenotypes, genotypes, non_cov_pheno_list, reg, covariates = None
 	# update the covariates column names with the new names
 	covariates = covariate_data.columns.tolist()
 
+	# iterate over all phenotypes, dropping any that are of type object, that have fewer than thresh samples, or that have fewer than the # of covariates
 	phenos_to_drop = []
 	for i in range(num_pheno):
 		phenotype_i = phenotypes[non_cov_pheno_list[i]]
 		
 		non_nan_samples_num = phenotype_i.shape[0] - phenotype_i.isnull().sum()
 		
-		# if we have a lot fewer observations (samples) than variables (covariates + our phenotype), 
+		# if we have a lot fewer observations (samples) than variables (covariates + our genotype), 
 		# then there is no unique solution to OLS (unless we use regularization - user parameter)
 		if non_nan_samples_num < len(covariates) + 1 and reg == False:
 			print('Phenotype %s dropped - it has %d samples, less than the number of covariates (%d)' %(phenotype_i.name, non_nan_samples_num, len(covariates) + 1))
@@ -173,7 +123,7 @@ def run_phewas(phenotypes, genotypes, non_cov_pheno_list, reg, covariates = None
 		# its possible that there are NaN values in the variant data, so we need to drop them
 		variant_non_nan_samples_num = variant_i.shape[0] - variant_i.isnull().sum()[0]
 
-		# if we have a lot fewer observations (samples) than variables (covariates + our phenotype),
+		# if we have a lot fewer observations (samples) than variables (covariates + genotype),
 		# then there is no unique solution to OLS (unless we use regularization - user parameter)
 		if variant_non_nan_samples_num < len(covariates) + 1 and reg == False:
 			print('Variant %s dropped - it has %d samples, less than the number of covariates (%d)' %(variant_i.columns[0], variant_non_nan_samples_num, len(covariates) + 1))
@@ -194,7 +144,7 @@ def run_phewas(phenotypes, genotypes, non_cov_pheno_list, reg, covariates = None
 			pheno_non_nan_samples_num = phenotype_i.shape[0] - phenotype_i.isnull().sum()
 
 			# run the regression
-			stat_info = fit_pheno_model(variant_i, phenotype_i, covariate_data, covariates, reg)
+			stat_info = run_regresssion(variant_i, phenotype_i, covariate_data, covariates, reg)
 
 			# whichever number is smaller, that is the number of samples we used in the regression
 			used_samples = min(pheno_non_nan_samples_num, variant_non_nan_samples_num)
