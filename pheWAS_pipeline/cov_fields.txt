@@ -1,0 +1,9 @@
+Field	Description
+31	Sex
+34	Year of Birth
+52	Month of Birth
+53	Date of attending assessment center
+54	Assessment center
+21000	Ethnic background 
+22001	Genetic Sex 
+22009	Genetic Principal Components
