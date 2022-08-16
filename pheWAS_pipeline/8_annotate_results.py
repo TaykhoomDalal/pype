@@ -77,7 +77,11 @@ def main():
 
 		aggregate_results = aggregate_results.append(df)
 
+	aggregate_results = aggregate_results.drop(columns = ['Bonferroni_correction'], axis = 1, errors='ignore')
 	aggregate_results.to_csv(aggregate_file, sep='\t', index=False)
+
+	print('Finished writing aggregate results file')
+	print('Output file: ' + aggregate_file + '\n')
 
 if __name__ == '__main__':
 	main()
