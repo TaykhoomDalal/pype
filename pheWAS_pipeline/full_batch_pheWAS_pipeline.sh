@@ -19,13 +19,13 @@ elif [ $1 == '-heart' ]; then
     sbatch heart_full_pheWAS_pipeline.sh 100081
     sbatch heart_full_pheWAS_pipeline.sh 1307
     exit 0
-elif [ $1 == '-eye' ]; then 
-    echo "Batching eye_full_pheWAS_pipeline.sh"
-    sbatch eye_full_pheWAS_pipeline.sh 1006
-    sbatch eye_full_pheWAS_pipeline.sh 1003
-    sbatch eye_full_pheWAS_pipeline.sh 1019
-    sbatch eye_full_pheWAS_pipeline.sh 17518
-    sbatch eye_full_pheWAS_pipeline.sh 100081
-    sbatch eye_full_pheWAS_pipeline.sh 1307
+elif [ $1 == '-eyes' ]; then 
+    echo "Batching eyes_full_pheWAS_pipeline.sh"
+    sbatch eyes_full_pheWAS_pipeline.sh 1006
+    sbatch eyes_full_pheWAS_pipeline.sh 1003
+    sbatch eyes_full_pheWAS_pipeline.sh 1019
+    sbatch eyes_full_pheWAS_pipeline.sh 17518
+    sbatch eyes_full_pheWAS_pipeline.sh 100081
+    sbatch eyes_full_pheWAS_pipeline.sh 1307
     exit 0
 fi
