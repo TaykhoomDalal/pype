@@ -13,6 +13,10 @@ import shutil
 import math
 from datetime import datetime
 from glob import glob
+from pathlib import Path
+from multiprocessing import Process, Manager
+
+SENTINEL = None
 
 # adapted code from Alan's MI_Classes.py file
 # add more mappings here if you need to fix other covariates
@@ -87,7 +91,24 @@ def grab_data_fields(url, out_dir):
 
 	return field_dict
 
+def extract_target(target_args):
+	extract_cmd, chr = target_args.get()
+
+	os.system('module load plink2 && ' + extract_cmd)
+	print('chr' + str(chr) + ' done')
+
 def extract_variants_and_samples(variant_list, sample_IDs, bfiles_dir, geno_dir, threads, memory, keep, delete_non_compressed):
+
+	# # create manager + queue to run processes
+	# manager = Manager()
+	# process_queue = manager.Queue(threads)
+
+	# # start workers, pointing towards the function to run (extract_target), and the arguments supplied (placed on queue)    
+	# pool = []
+	# for _ in range(threads):
+	# 	p = Process(target=extract_target, args=(process_queue,))
+	# 	p.start()
+	# 	pool.append(p)
 
 	operation_on_samples = ''
 	if keep:
@@ -95,8 +116,7 @@ def extract_variants_and_samples(variant_list, sample_IDs, bfiles_dir, geno_dir,
 	else:
 		operation_on_samples = '--remove'
 
-	os.system('module load plink2')
-
+	# temp_files = []
 	for input_file, sample_file in zip(variant_list, sample_IDs):
 
 		# Determine the age predictor being used
@@ -108,6 +128,7 @@ def extract_variants_and_samples(variant_list, sample_IDs, bfiles_dir, geno_dir,
 		rsIDs = variants['rsID'].values
 
 		temp_file = geno_dir + '/' + age_Predictor + '_temp_rsIDs_file.txt'
+		# temp_files.append(temp_file)
 
 		with open(temp_file, 'w+') as f:
 			f.write('\n'.join(rsIDs))
@@ -145,15 +166,25 @@ def extract_variants_and_samples(variant_list, sample_IDs, bfiles_dir, geno_dir,
 							"--memory", str(memory),
 							"--make-bed", 
 							"--out", geno_dir + '/' + age_Predictor + '_' + file])
-
+			
+			# add each extraction command to the queue to be run by the workers
+			# process_queue.put((extraction_command, i))
 			os.system('module load plink2 && ' + extraction_command)
 			print('chr' + str(i) + ' done')
 
 		os.remove(temp_file)
 
-		if delete_non_compressed:
-			for file in glob(bfiles_dir + '/*.bed'):
-				os.remove(file)
+	# # wait for all the workers to finish before continuing with the main code
+	# for p in pool:
+	# 	p.join()
+
+	# for temp_file in temp_files:
+	# 	os.remove(temp_file)
+	# 	print('removed temp file: ' + temp_file)
+
+	if delete_non_compressed:
+		for file in glob(bfiles_dir + '/*.bed'):
+			os.remove(file)
 
 def extract_ukb_data_fields(col_names, fields_to_keep, file, write_file = False):
 	"""
@@ -253,6 +284,14 @@ def compute_sex(pheno):
 
 	return pheno
 
+def compute_attendance_center(pheno):
+	
+	# one hot encode the attendance centers
+	for i in range(4):
+		pheno = pd.get_dummies(pheno, prefix = 'center_' + str(i), columns = ['Center_of_attendance_' + str(i)])
+
+	return pheno
+
 def compute_age(pheno):
 	# Recompute age with greater precision by leveraging the month of birth
 	pheno['Year_of_birth'] = pheno['Year_of_birth'].astype(int)
@@ -315,10 +354,15 @@ def fix_covariate_data(pheno, phenotype_fields, sample_list, out_dir, data_field
 		pheno[file].rename(columns=dict_UKB_fields_to_names, inplace=True)
 		pheno[file].set_index('f.eid', drop=False, inplace=True)
 		pheno[file].index.name = 'column_names'
+		
+		if 'Sex' in pheno[file].columns and 'Sex_genetic' in pheno[file].columns:
+			pheno[file] = compute_sex(pheno[file])
 
-		pheno[file] = compute_sex(pheno[file])
-		pheno[file] = compute_age(pheno[file])
-		pheno[file] = encode_ethnicity(pheno[file])
+		if 'Year_of_birth' in pheno[file].columns and 'Month_of_birth' in pheno[file].columns and 'Date_attended_center_0' in pheno[file].columns:
+			pheno[file] = compute_age(pheno[file])
+		
+		if 'Ethnicity' in pheno[file].columns:
+			pheno[file] = encode_ethnicity(pheno[file])
 
 		# set of all covaraites, including the new covariate related columns added
 		all_covariates = [col for col in pheno[file].columns if col not in phenotype_fields + ['f.eid']]
@@ -338,6 +382,9 @@ def fix_covariate_data(pheno, phenotype_fields, sample_list, out_dir, data_field
 
 		# reset the index since we changed it, and only keep a select few cols
 		pheno[file] = pheno[file][cols_to_keep].reset_index().drop('column_names', axis = 1)
+
+		if 'Center_of_attendance' in pheno[file].columns:
+			pheno[file] = compute_attendance_center(pheno[file])
 
 		if pickle_intermediates:
 			pheno[file].to_pickle(out_dir + '/' + file_prefix + '_subsetted_pheno_covariates_fixed.pkl', protocol= pickle_protocol)
@@ -361,7 +408,39 @@ def create_raw_geno_files(geno_dir, raw_dir):
 
 		os.system('module load plink2 && ' + command)
 
-def run_pheWAS(sample_list, pheno_dict, out_dir, raw_dir, data_fields_dir, reg, thresh):
+def phewas_target(thresh, reg, target_args):
+	
+	while True:
+		args_for_phewas = target_args.get()
+
+		if args_for_phewas == SENTINEL:
+			print('phewas_target: sentinel received')
+			return
+		else:
+			pheno, geno, non_cov, cov, results_file = args_for_phewas
+
+			results = pheWAS.run_phewas(phenotypes = pheno, 
+										genotypes = geno, 
+										non_cov_pheno_list= non_cov, 
+										reg = reg, 
+										covariates = cov,
+										thresh = thresh)
+
+			# save the results to a file
+			results.to_csv(results_file, sep='\t', index=False)
+
+
+def run_pheWAS(sample_list, pheno_dict, out_dir, raw_dir, data_fields_dir, reg, thresh, threads):
+
+	manager = Manager()
+	process_queue = manager.Queue(threads)
+
+	# start workers, pointing towards the function to run (phewas_target), and the arguments supplied (placed on queue)       
+	pool = []
+	for _ in range(threads):
+		p = Process(target=phewas_target, args=(thresh, reg, process_queue))
+		p.start()
+		pool.append(p)
 
 	for file in sample_list:
 
@@ -406,15 +485,25 @@ def run_pheWAS(sample_list, pheno_dict, out_dir, raw_dir, data_fields_dir, reg, 
 				# Take the difference between the covariate headers and the phenotype headers
 				diff_cov_pheno = list(set(pheno.columns) - set(cov_headers_ethnicity_fixed))
 
-				results = pheWAS.run_phewas(phenotypes = pheno, 
-											genotypes = geno_data, 
-											non_cov_pheno_list= diff_cov_pheno, 
-											reg = reg, 
-											covariates = cov_headers_ethnicity_fixed,
-											thresh = thresh)
+				# add each the phewas files needed to run each phewas to the queue for the workers to use
+				process_queue.put((pheno, geno_data, diff_cov_pheno, cov_headers_ethnicity_fixed, results_file))
 
-				# save the results to a file
-				results.to_csv(results_file, sep='\t', index=False)
+				# results = pheWAS.run_phewas(phenotypes = pheno, 
+				# 							genotypes = geno_data, 
+				# 							non_cov_pheno_list= diff_cov_pheno, 
+				# 							reg = reg, 
+				# 							covariates = cov_headers_ethnicity_fixed,
+				# 							thresh = thresh)
+
+				# # save the results to a file
+				# results.to_csv(results_file, sep='\t', index=False)
+	
+	for _ in range(threads):
+		process_queue.put(SENTINEL)
+
+	# wait for all the workers to finish before continuing with the main code
+	for p in pool:
+		p.join()
 
 def save_top_variants(out_dir, field_dict):
 	output = out_dir + '/aggregate_pheWAS_results.tsv'
@@ -508,17 +597,16 @@ def main():
 	parser.add_argument('--covariates', help='File of covariate data fields', required=True, type = str)
 	parser.add_argument('--location', help='Location (directory) to store intermediate files', required=True, type = str)
 	parser.add_argument('--variants', action='append', help='List of variant files to use', required=True)
-	parser.add_argument('--threads', help='Number of threads to use', required = True, type=int)
+	parser.add_argument('--threads', help='Number of threads to use', required = False, type=int, default = 1)
 	parser.add_argument('--memory', help='Memory to use', required = True, type=int)
 	parser.add_argument('--regularization', action='store_true', help='Regularization parameter')
 	parser.add_argument('--name', help='Name of the output directory', required = True, type=str)
 	parser.add_argument('--sample_threshold', help='Threshold for the minimum number of samples', default = 1000, required = False, type=int)
-	parser.add_argument('--reuse_phenotypes', help ='If you already have the phenotypes, pass the directory name', required = False, default = None)
-	parser.add_argument('--reuse_fixed_phenotypes', help ='If you already have the fixed phenotypes, pass the directory name', required = False, default = None)
-	parser.add_argument('--reuse_bfiles', help ='If you already have the bfiles, pass the directory name', required = False, default = None)
-	parser.add_argument('--reuse_genos', help ='If you already have the extracted bfiles, pass the directory name', required = False, default = None)
-	parser.add_argument('--reuse_raw_bfiles', help ='If you already have the raw bfiles, pass the directory name', required = False, default = None)
-	parser.add_argument('--old_data_fields_dir', help = 'If you pass the reuse_phenotypes arg, you need to specify the directory where the old data fields are stored', required = False, default = None)
+	parser.add_argument('--reuse_phenotypes', help ='If you already have the phenotypes, pass the directory name', required = False, default = '')
+	parser.add_argument('--reuse_fixed_phenotypes', help ='If you already have the fixed phenotypes, pass the directory name', required = False, default = '')
+	parser.add_argument('--reuse_genos', help ='If you already have the extracted bfiles, pass the directory name', required = False, default = '')
+	parser.add_argument('--reuse_raw_bfiles', help ='If you already have the raw bfiles, pass the directory name', required = False, default = '')
+	parser.add_argument('--old_data_fields_dir', help = 'If you pass the reuse_phenotypes arg, you need to specify the directory where the old data fields are stored', required = False, default = '')
 	parser.add_argument('--save_phenotypes', help = 'If you want to save the phenotypes, pass this flag', required = False, default = False, action = 'store_true')
 	parser.add_argument('--pickle_intermediates', help = 'If you want to pickle the intermediate files, pass this flag', required = False, default = False, action = 'store_true')
 	parser.add_argument('--delete_non_compressed_files', help = 'If you want to delete the non-compressed bed files', required = False, default = False, action = 'store_true')
@@ -553,28 +641,52 @@ def main():
 		directory = '.'
 
 	dir_path = directory + '/' + name 
-	shutil.rmtree(dir_path, ignore_errors=True)
-	os.makedirs(dir_path)
+
+	p = Path(dir_path)
+
+	# if the directory already exists, don't delete it (we might be using files from inside it)
+	if not p.exists():
+		print('Creating directory: ' + dir_path)
+		# shutil.rmtree(dir_path, ignore_errors=True)
+		os.makedirs(dir_path)
 
 	# make directories for intermediate files
-	pheno_dir = dir_path + '/pheno'
-	raw_dir = dir_path + '/raw'
 	geno_dir = dir_path + '/geno'
-	pheWAS_dir = dir_path + '/pheWAS'
+	raw_dir = dir_path + '/raw'
+	pheno_dir = dir_path + '/pheno'
 	data_fields_dir = dir_path + '/data_fields'
+	pheWAS_dir = dir_path + '/pheWAS'
 
 	# try deleting the directory, if it exists, then directory will be deleted, if not, the error is ignored (EAFP)
-	shutil.rmtree(pheno_dir, ignore_errors=True)
-	shutil.rmtree(raw_dir, ignore_errors=True)
-	shutil.rmtree(geno_dir, ignore_errors=True)
-	shutil.rmtree(pheWAS_dir, ignore_errors=True)
-	shutil.rmtree(data_fields_dir, ignore_errors=True)
+	# compare the directory we want to create to the passed directory, if they are the same, don't delete the directory
+	
+	if geno_dir != reuse_genos:
+		
+		if reuse_genos == '': # only remake geno_dir if we aren't using another directory for the geno files
+			print('deleting geno_dir since we aren\'t reusing it')
+			shutil.rmtree(geno_dir, ignore_errors=True)
+			os.makedirs(geno_dir)
 
-	os.makedirs(pheno_dir)
-	os.makedirs(raw_dir)
-	os.makedirs(geno_dir)
+	if raw_dir != reuse_raw_bfiles:
+		
+		if reuse_raw_bfiles == '': # only remake raw_bfile dir if we aren't using another directory for the raw files
+			print('deleting raw_dir since we aren\'t reusing it')
+			shutil.rmtree(raw_dir, ignore_errors=True)
+			os.makedirs(raw_dir)
+
+	if pheno_dir != reuse_phenotypes and pheno_dir != reuse_fixed_phenotypes:
+		print('deleting pheno_dir since we aren\'t reusing it')
+		shutil.rmtree(pheno_dir, ignore_errors=True)
+		os.makedirs(pheno_dir)
+	
+	if data_fields_dir != old_data_fields_dir:
+		print('deleting data_fields_dir since we aren\'t reusing it')
+		shutil.rmtree(data_fields_dir, ignore_errors=True)
+		os.makedirs(data_fields_dir)
+	
+	print('deleting pheWAS_dir since we never reuse it')
+	shutil.rmtree(pheWAS_dir, ignore_errors=True)
 	os.makedirs(pheWAS_dir)
-	os.makedirs(data_fields_dir)
 	
 	field_dict = grab_data_fields(url = url, out_dir = data_fields_dir)
 
@@ -587,7 +699,7 @@ def main():
 	# sort the two lists such that both lists have the same order (requires that the prefix of the files match between the lists, and suffix matches within the list)
 	sample_list, variant_list = (list(t) for t in zip(*sorted(zip(sample_list, variant_list))))
 	
-	if reuse_genos is None:
+	if reuse_genos == '':
 		# create bfiles with associated samples removed or kept and target variants extracted
 		extract_variants_and_samples(variant_list = variant_list, 
 									sample_IDs = sample_list, 
@@ -598,11 +710,20 @@ def main():
 									keep = keep,
 									delete_non_compressed = delete_non_compressed_files)
 	else:
+		print('Reusing genotype files')
 		geno_dir = reuse_genos
+	
+	if reuse_raw_bfiles == '':
+		# create raw genotype files for the pheWAS
+		create_raw_geno_files(geno_dir = geno_dir, 
+								raw_dir = raw_dir)
+	else:
+		print('Reusing raw genotype files')
+		raw_dir = reuse_raw_bfiles
 
 	data_dict = {}
 	phenof = ''
-	if reuse_phenotypes is None and reuse_fixed_phenotypes is None:
+	if reuse_phenotypes == '' and reuse_fixed_phenotypes == '':
 		# get subsetted phenotype data + covariate data field names
 		data_dict, phenof = make_out_of_sample_pheno_file(sample_files = sample_list, 
 												pheno_file = phenotype_file, 
@@ -615,10 +736,15 @@ def main():
 												pickle_intermediates = pickle_intermediates,
 												pickle_protocol = pickle_protocol)
 												
-	elif reuse_phenotypes is not None and reuse_fixed_phenotypes is None:
+	elif reuse_phenotypes != '' and reuse_fixed_phenotypes == '':
 		# read in phenotype data
 		# all the files in the reuse_phenotypes directory are assumed to be phenotype files
 		for file in os.listdir(reuse_phenotypes):
+			
+			if '_covariates_fixed' in file:
+				continue
+
+			print('Reusing phenotype file: ' + file)
 
 			if file.endswith('.pkl'):
 				f = pd.read_pickle(reuse_phenotypes + '/' + file)
@@ -627,18 +753,16 @@ def main():
 
 			for sfile in sample_list:
 				# get prefix of the file
-				prefix = sfile.split('_')[0]
+				prefix = os.path.basename(sfile).split('_')[0]
 
 				if file.startswith(prefix + '_'):
 					data_dict[sfile] = f
+					break
 	
 		phenof = pd.read_csv(old_data_fields_dir + '/' + 'ukb_data_fields.txt', sep = '\t', usecols = [0], dtype = str).iloc[:,0].values.tolist()
-		data_fields_dir = old_data_fields_dir
-	else:
-		data_fields_dir = old_data_fields_dir
 
 	pheWAS_ready_phenos_dict = {}
-	if reuse_fixed_phenotypes is None:
+	if reuse_fixed_phenotypes == '':
 		# fix the covariate data (one hot encoding, calculating age, etc)
 		pheWAS_ready_phenos_dict = fix_covariate_data(pheno = data_dict, 
 												phenotype_fields = phenof, 
@@ -650,6 +774,11 @@ def main():
 	else:
 		# read in the fixed phenotype data
 		for file in os.listdir(reuse_fixed_phenotypes):
+
+			if '_covariates_fixed' not in file:
+				continue
+
+			print('Reusing fixed phenotype file: ' + file)
 
 			if file.endswith('.pkl'):
 				f = pd.read_pickle(reuse_fixed_phenotypes + '/' + file)
@@ -664,14 +793,6 @@ def main():
 					pheWAS_ready_phenos_dict[sfile] = f
 					break
 
-	if reuse_raw_bfiles is None:
-		# create raw genotype files for the pheWAS
-		create_raw_geno_files(geno_dir = geno_dir, 
-								raw_dir = raw_dir)
-	else:
-		raw_dir = reuse_raw_bfiles
-
-
 	# run the pheWAS across all the variants and predictors
 	run_pheWAS(sample_list = sample_list, 
 				pheno_dict = pheWAS_ready_phenos_dict, 
@@ -679,7 +800,8 @@ def main():
 				raw_dir = raw_dir, 
 				data_fields_dir = data_fields_dir,
 				reg = regularization,
-				thresh = sample_threshold)
+				thresh = sample_threshold,
+				threads = threads)
 	
 	# create the final output file
 	save_top_variants(out_dir = pheWAS_dir, 
