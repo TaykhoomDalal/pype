@@ -319,19 +319,21 @@ def significant_bar_plot(regressions, sig,title, output_file, save = True):
 
 	index = 0
 	categories = list(categories)
+	sig_max = np.max(significant)
 	for p in p1.patches:
 		width, height = p.get_width(), p.get_height()
 		x, y = p.get_xy() 
 		# ax.annotate(str(round(height*100, 2)) + '%', (p.get_x() + 0.1*width, p.get_y()+height + 0.005), 
 		#     fontsize=10, color='black')
 		width_addition = 0.2*width
+		height_addition = sig_max*0.02
 
 		if total_vars[categories[index]] < 100:
 			width_addition = 0.3*width
 		elif total_vars[categories[index]] > 1000:
-			width_addition = 0.1*width
+			width_addition = 0.05*width
 
-		ax.annotate(total_vars[categories[index]], (p.get_x() + width_addition, p.get_y()+height + 0.3), 
+		ax.annotate(total_vars[categories[index]], (p.get_x() + width_addition, p.get_y()+height + height_addition), 
 			fontsize=10, color='black', bbox=dict(facecolor='none', edgecolor='red', boxstyle='round'))
 		index += 1
 	
