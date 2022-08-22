@@ -1,9 +1,6 @@
 import pandas as pd
 from bs4 import BeautifulSoup
-import requests
-import re
 import argparse
-import os
 import utility_funcs as uf
 
 dict_type_to_pandas_type = {'Integer' : 'Int64', 
