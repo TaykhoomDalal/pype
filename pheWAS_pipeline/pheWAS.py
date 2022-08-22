@@ -1,9 +1,7 @@
-import statsmodels.formula.api as smf
-import statsmodels.genmod.generalized_linear_model as sm_glm
+from statsmodels.formula.api import ols
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
-import math 
 import re
 import traceback
 
@@ -41,12 +39,12 @@ def run_regresssion(variant, phenotype, covariate_data = None, covariates = None
 
 	try:
 		# need to spend some time figuring out w
-		results = smf.ols(formula = f, data = data).fit()
+		results = ols(formula = f, data = data).fit()
 
 		# get results
-		p = results.pvalues[1]
-		beta = results.params[1]
-		stderr = results.bse[1]
+		p = results.pvalues.genotype
+		beta = results.params.genotype
+		stderr = results.bse.genotype
 		reg_result = [-np.log10(p), p, beta, stderr]  # collect results
 
 	except Exception as e:
