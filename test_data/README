@@ -1,0 +1,7 @@
+bed/bim/fam files came from plink tutorial - https://zzz.bwh.harvard.edu/plink/binary.shtml
+randomly shuffled columns of tab file:
+for col in pheno.columns:
+    pheno[col] = np.random.permutation(pheno[col].values)
+
+picked random variant from bim file
+converted 0 1 2 into A C T
