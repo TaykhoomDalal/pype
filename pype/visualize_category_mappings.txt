@@ -1,0 +1,32 @@
+Old_categories	New_categories
+Medication	Medication
+Pain	Pain
+Eyesight	Eyesight
+Mouth	Mouth
+General health	Health
+Operations	Health
+Medical conditions	Health
+Medications	Medication
+Hearing	Hearing
+Breathing	Breathing
+Claudication and peripheral artery disease	Legs
+Cancer screening	Cancer
+Chest pain	Pain
+Spirometry	Breathing
+Blood pressure	Heart
+Body size measures	Body
+Body composition by impedance	Body
+Arterial stiffness	Heart
+Bone-densitometry of heel	Bone-densitometry
+Hand grip strength	Hands
+Acceleration averages	Health
+Myocardial infarction outcomes	Heart
+Summary Psychiatric	Psychiatric
+Cancer register	Cancer
+Summary Administration	Health
+Summary Maternity	Maternity
+Stroke outcomes	Heart
+Death register	Death
+Infectious Disease Antigens	Disease
+Blood biochemistry	Blood
+Blood count	Blood
