@@ -404,7 +404,7 @@ def main():
 	parser.add_argument('--clear_old_files', help = 'Clear old files', required = False, default = False, action = 'store_true')
 	parser.add_argument('--alpha', help = 'Significance threshold', required = False, default = 0.05, type = float)
 	parser.add_argument('--correction', help = 'Correction method', required = False, default = 'bonferroni', choices = ['bonferroni', 'sidak', 'holm-sidak', 'holm', 'simes-hochberg', 'hommel', 'fdr_bh', 'fdr_by', 'fdr_tsbh', 'fdr_tsbky', 'no_correction'])
-	parser.add_argument('--compare_original_betas', help = 'Compare original betas with corrected betas', required = False, default = True, action = 'store_true')
+	parser.add_argument('--compare_original_betas', help = 'Compare original betas with corrected betas', required = False, default = False, action = 'store_true')
 	parser.add_argument('--transparency', help = 'Transparency of points', required = False, default = 0.75, type = float)
 
 	args = parser.parse_args()
