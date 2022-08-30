@@ -1,4 +1,3 @@
-from pickle import NONE
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -11,42 +10,27 @@ from adjustText import adjust_text
 from matplotlib.patches import Patch
 import matplotlib.ticker as mtick
 from matplotlib.lines import Line2D
+from utility_funcs import multiple_testing_correction
+import shutil
 
-def get_closest_genes(rsIDs, genes, upstream, downstream):
-	
-	# assume gene file always have 4 columns CHR, START, END, GENE
-	genes.columns = ['CHR', 'START', 'END', 'GENE']
-	
-	# remove the 'chr' prefix if present
-	genes['CHR'] = genes['CHR'].apply(lambda x: x.replace('chr', ''))
-	
-	# create dataframe to store results
-	res = pd.DataFrame(columns = ['CHR', 'START', 'END', 'GENE'])
-	
-	# group by the gene and the associated CHR (seems to be some instances of gene isoforms on multiple chromosomes)
-	gene_groups = genes.groupby(['GENE', 'CHR'])
-	
-	# for each grouping of gene, and then chromosome, get the tuple of the gene/chr, and save it in the results dataframe
-	gene_chr_tuples = gene_groups.apply(lambda x: x.name).reset_index(drop = True)
-	res['GENE'], res['CHR'] = gene_chr_tuples.apply(lambda x:x[0]).tolist(), gene_chr_tuples.apply(lambda x:x[1]).tolist()
+def plot_significant_categories(idx_sig_cats, pheno, out_file, title, regressions, sig_thresh, annotated_regressions, N, cmp_orig_betas, transparency, color_map):
+	# for each category in the significant categories
+	for cat, _ in idx_sig_cats:
+		
+		if pheno == '': # if we are plotting aggregate results
+			output_file_cat = out_file.split('.')[0] + '_' + cat + '.png'
+		else: # if we are plotting results for a category within the results for a certain phenotype
+			output_file_cat = out_file.split('.')[0] + '_' + cat + '_' + pheno + '.png'
 
-	# we will combine all the isoforms of the genes on the same chromosome into a "single gene"
-	# for the start, take the minimum of all the isoforms starting spot and for the end, take the maximum of all the isoforms ending spot
-	res['START'] = gene_groups['START'].min().values.tolist()
-	res['END'] = gene_groups['END'].max().values.tolist()
-	
-	# merge the rsIDs with the results dataframe based on the chromosome
-	merge = pd.merge(rsIDs, res, how = 'inner', on = 'CHR')
-	
-	# get the rows that are within the upstream and downstream regions
-	return merge.loc[(merge.POS >= merge.START - downstream*1000) & (merge.POS <= merge.END + upstream*1000)] 
-	
-def manhattan_plot(regressions, sig, lower_outlier, upper_outlier, title, output_file, pheno, res, plt_top_cat, N):
+		title_cat = title + ' - ' + cat
+		data_cat = regressions.loc[regressions['Category'] == cat]
+
+		manhattan_plot(data_cat, sig_thresh, 0, 1, title_cat, output_file_cat, cat, annotated_regressions, plt_top_cat = False, N = N, compare_orig_betas = cmp_orig_betas, transparency = transparency, pheno_color = color_map[cat])
+
+def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annotated_regressions, plt_top_cat, N, compare_orig_betas, transparency, pheno_color = None):
 	"""
-	Plots significant phenotype data on a Manhattan Plot.
-	The significance of each phenotype (represented by :math:`-log_{10}(p)`\ ) is plotted along the
-	y-axis, with phenotypes plotted along the x-axis.
-	
+	Function to plot manhattan plot for a given phenotype
+
 	:param regressions: pandas dataframe containing the regression results
 	:param thresh: p-value significance threshold
 	:param title: the title of the file for the manhattan plot
@@ -57,19 +41,13 @@ def manhattan_plot(regressions, sig, lower_outlier, upper_outlier, title, output
 	:type title: string
 	:type output_file: string
 	"""
-	# print(np.isfinite(regressions['"-log(p)"']))
 
-	# # convert the inf pvalues to 
-	# regressions['"-log(p)"'] = np.where(np.isfinite(regressions['"-log(p)"']), regressions['"-log(p)"'],  np.ma.masked_invalid(regressions['"-log(p)"']).max() + 10)
-
-	# print(np.isfinite(regressions['"-log(p)"']))
-	# exit()
-	# # save the top variants to a file (before filtering out the super low p-values)
+	# save the top variants to a file (before filtering out the super low p-values)
 	all_top = regressions.loc[regressions['"-log(p)"'] >= sig].groupby('Category').apply(lambda x : x.sort_values(by = '"-log(p)"', ascending = False).reset_index(drop = True))
 	all_top.to_csv(output_file.split('.')[0] + '_top_variants.tsv', sep = '\t', index = False)
 
 	# remove extreme outliers in order to be able to visualize the data more coherently
-	regressions = regressions[regressions['"-log(p)"'].between(regressions['"-log(p)"'].quantile(lower_outlier), regressions['"-log(p)"'].quantile(upper_outlier))]
+	regressions = regressions[regressions['"-log(p)"'].between(regressions['"-log(p)"'].quantile(low), regressions['"-log(p)"'].quantile(high))]
 	
 	# remove all variants with p-value above the significance level
 	# groupby category and find median of all these significant variants
@@ -107,149 +85,143 @@ def manhattan_plot(regressions, sig, lower_outlier, upper_outlier, title, output
 	# sort the categories by the med list
 	regressions = regressions.sort_values(by='Category', key = sorter)
 
+	# get the list of categories, to map the colors to the categories
+	categories = regressions['Category'].unique()
+	n_categories = len(categories)
+
+	color_map = {}
+	if n_categories > 1:
+		# List of RGB triplets
+		colors = sns.color_palette("rainbow", n_categories)
+
+		# Map label to RGB
+		color_map = dict(zip(categories, colors))
+	else:
+		color_map[pheno] = pheno_color
+
+
 	if plt_top_cat:
-		for cat, _ in indices_of_significant_cats:
-			
-			if pheno == '':
-				output_file_cat = output_file.split('.')[0] + '_' + cat + '.png'
-			else:
-				output_file_cat = output_file.split('.')[0] + '_' + cat + '_' + pheno + '.png'
-
-			title_cat = title + ' - ' + cat
-			reg_cat = regressions.loc[regressions['Category'] == cat]
-
-			manhattan_plot(reg_cat, sig, 0, 1, title_cat, output_file_cat, cat, res, plt_top_cat = False, N = N)
-	
+		plot_significant_categories(indices_of_significant_cats, pheno, output_file, title, regressions, sig, annotated_regressions, N, compare_orig_betas, transparency, color_map)
 	if regressions.empty:
+		print('No significant variants found for this phenotype')
 		return
 
 	# rename the columns to be more readable
 	regressions.rename(columns={'"-log(p)"': '-log(p)'}, inplace=True)
 	
-	# get the list of categories, to map the colors to the categories
-	categories = regressions['Category'].unique()
-	n_categories = len(categories)
-
-	# List of RGB triplets
-	colors = sns.color_palette("rainbow", n_categories)
-
-	# Map label to RGB
-	color_map = dict(zip(categories, colors))
-
-	# get the axes and add a horizontal line at the threshold value
-	# _, ax = plt.subplots(figsize=(12,8))
+	# get ready to plot
 	plt.figure(figsize=(15, 8), dpi=500)
 
+	# data for plotting
 	significant_vars = regressions.loc[regressions['-log(p)'] >= sig]
+	non_significant_vars = regressions.loc[regressions['-log(p)'] < sig]
+	significant_original_pos_dir = significant_vars.loc[significant_vars['beta'] >= 0].copy()
+	significant_original_neg_dir = significant_vars.loc[significant_vars['beta'] < 0].copy()
 
-	if n_categories > 1:
-		# Plot the -log(p) values against the category values, with the colors mapped to the categories
-		ax = sns.stripplot(x = 'Category', y = '-log(p)', data = regressions, palette = color_map, jitter=0.45, size = 3,  linewidth=0.2, **{'alpha': 0.5})
-	else:
-		non_significant_vars = regressions.loc[regressions['-log(p)'] < sig]
-		# plot for the values below the significance level (should be circles)
-		ax = sns.stripplot(x = 'Category', y = '-log(p)', data = non_significant_vars, color = 'green', jitter=0.45, size = 7,  linewidth=0.3, **{'alpha': 0.5})
+	# the index for the collection for each category is simply the position of the category in the list of categories
+	# when you use sns.stripplot with order = something, it will plot for all the categories, creating empty collections
+	# for those that don't exist, thats why we add the initial index, then index + num categories
+	# Note: if there are no significant positive, or negative beta variants, we need to check if our index is out of bounds
+	cat_to_collection = defaultdict(list)
+	for idx, cat in enumerate(categories):
+		cat_to_collection[cat].append(idx) # accounts for the significant positive beta plots
+		cat_to_collection[cat].append(idx + n_categories) # accounts for the significant negative beta plots
 
+	# custom legend entries
+	handles = []
 
-		significant_original_pos_dir = significant_vars.loc[significant_vars['Original_beta'] >= 0].copy()
-		significant_original_neg_dir = significant_vars.loc[significant_vars['Original_beta'] < 0].copy()
-	
+	# if we are plotting 1 category, we have bigger points + different colors
+	size = 7
+	color = pheno_color
 
-		if not significant_original_pos_dir.empty:
+	# if we plotting more than 1 category, save space with points and the colors of the points will be different
+	if n_categories > 1: 
+		size = 5
+		color = color
+
+	if not significant_original_pos_dir.empty:
+		if compare_orig_betas and n_categories == 1:
 			pos_dir_palette ={"+": "red", "-": "orange"}
-			significant_original_pos_dir.loc[:, 'new_beta_direction'] = significant_original_pos_dir.apply(lambda x: '+' if x['beta'] >= 0 else '-', axis = 1)
-			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_pos_dir, hue="new_beta_direction", palette = pos_dir_palette, jitter=0.45, size = 7,  linewidth=0.3, **{'marker': '^', 'alpha': 0.5})
-		
-		if not significant_original_neg_dir.empty:
+			significant_original_pos_dir.loc[:, 'original_beta_direction'] = significant_original_pos_dir.apply(lambda x: '+' if x['Original_beta'] >= 0 else '-', axis = 1)
+			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_pos_dir, hue="original_beta_direction", palette = pos_dir_palette, jitter=0.45, size = size, order = categories, linewidth=0.3, **{'marker': '^', 'alpha': transparency})
+			handles.extend([Line2D([0], [0], color = 'red', marker = '^', linestyle='None',label = 'Pos/Pos', alpha = transparency),
+							Line2D([0], [0], color = 'orange', marker = '^', linestyle='None',label = 'Pos/Neg', alpha = transparency)])
+		else:
+			# Plot the -log(p) values against the category values, with the colors mapped to the categories, with up arrow == the direction of the beta value is positive
+			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_pos_dir, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'marker': '^', 'alpha': transparency})
+			handles.append(Line2D([0], [0], color = color, marker = '^', linestyle='None',label = 'Positive beta', alpha = transparency))
+	
+	if not significant_original_neg_dir.empty:
+		if compare_orig_betas and n_categories == 1:
 			neg_dir_palette ={"-": "blue", "+": "purple"}
-			significant_original_neg_dir.loc[:, 'new_beta_direction'] = significant_original_neg_dir.apply(lambda x: '+' if x['beta'] >= 0 else '-', axis = 1)
-			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_neg_dir, hue="new_beta_direction", palette = neg_dir_palette, jitter=0.45, size = 7,  linewidth=0.3, **{'marker': 'v', 'alpha': 0.5})
+			significant_original_neg_dir.loc[:, 'original_beta_direction'] = significant_original_neg_dir.apply(lambda x: '+' if x['Original_beta'] >= 0 else '-', axis = 1)
+			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_neg_dir, hue="original_beta_direction", palette = neg_dir_palette, jitter=0.45, size = size, order = categories, linewidth=0.3, **{'marker': 'v', 'alpha': transparency})
+			handles.extend([Line2D([0], [0], color = 'blue', marker = 'v', linestyle='None',label = 'Neg/Neg', alpha = transparency),  
+							Line2D([0], [0], color = 'purple', marker = 'v', linestyle='None', label = 'Neg/Pos', alpha = transparency)])
+		else:
+			# Plot the -log(p) values against the category values, with the colors mapped to the categories, with down arrow == the direction of the beta value is negative
+			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_neg_dir, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'marker': 'v', 'alpha': transparency})
+			handles.append(Line2D([0], [0], color = color, marker = 'v', linestyle='None', label = 'Negative beta', alpha = transparency))
 	
-
-		# # get the rows of the significant values with the direction being S
-		# significant_vars_same_dir = significant_vars.loc[significant_vars['Direction'] == 'S']
-
-		# # get the rows of the significant values with the direction being D
-		# significant_vars_diff_dir = significant_vars.loc[significant_vars['Direction'] == 'D']
-
-		# # plot for the values above the significance level (should be ^ or v depending on the direction of the regression)
-		# if not significant_vars_same_dir.empty:
-		# 	ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_vars_same_dir, color = 'red', jitter=0.45, size = 7,  linewidth=0.3, **{'marker': '^', 'alpha': 0.5})
+	# if we need to add annotations to the plot
+	if annotated_regressions is not None:
 		
-		# if not significant_vars_diff_dir.empty:
-		# 	ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_vars_diff_dir, color = 'blue', jitter=0.45, size = 7,  linewidth=0.3, **{'marker': 'v', 'alpha': 0.5})
-	
-		ax.legend(handles = [Line2D([0], [0], color = 'red', marker = '^', linestyle='None',label = 'Pos/Pos', alpha = 0.5),
-							Line2D([0], [0], color = 'orange', marker = '^', linestyle='None',label = 'Pos/Neg', alpha = 0.5), 
-							Line2D([0], [0], color = 'blue', marker = 'v', linestyle='None',label = 'Neg/Neg', alpha = 0.5),  
-							Line2D([0], [0], color = 'purple', marker = 'v', linestyle='None', label = 'Neg/Pos', alpha = 0.5)], loc = 'best')
-	
-	# # save all top variants to a file
-	# all_top = significant_vars.groupby('Category').apply(lambda x : x.sort_values(by = '-log(p)', ascending = False).reset_index(drop = True))
-	# all_top.to_csv(output_file.split('.')[0] + '_top_variants.tsv', sep = '\t', index = False)
-	
-	if res is not None:
+		# if we are plotting more than 1 category, only annotate top 2 points
+		annotate_top = 2
 
-		xy = defaultdict(list)
-
-		top = 2
-
+		# else, annotate the top N points
 		if n_categories == 1:
-			top = N
+			annotate_top = N
 
 		# get top N variants for each category
-		top_N = significant_vars.groupby('Category').apply(lambda x : x.sort_values(by = '-log(p)', ascending = False).head(top).reset_index(drop = True))
+		top_N = significant_vars.groupby('Category').apply(lambda x : x.sort_values(by = '-log(p)', ascending = False).head(annotate_top).reset_index(drop = True))
+		
+		collections = ax.collections
 
-		collections = [ax.collections[i].get_offsets().data for i in range(len(ax.collections)) if ax.collections[i].get_offsets().data.size != 0]
-
+		# when we only have 1 category, there are some erroneous empty collections, so get rid of them
+		# need to figure out why this is happening and make a better solution
 		if n_categories == 1:
+			collections = [ax.collections[i] for i in range(len(ax.collections)) if ax.collections[i].get_offsets().data.size != 0]
 
-			if len(collections) == 3:
-				collections = [np.concatenate((collections[1], collections[2]))]
-			elif len(collections) == 2:
-				collections = [collections[1]]
-			else:
-				collections = [collections[0]]
-
-		for cat, ind in indices_of_significant_cats:
-
-			# only annotate top variants for each category (to avoid cluttering the plot, use only 2 for the big plots)
-			top_xy_coords = sorted(collections[ind], key = lambda x: x[1], reverse = True)
-
-			if top < len(top_xy_coords):
-				top_xy_coords = top_xy_coords[:top]
-
-			top_xy_coords = [(x,y) for x,y in top_xy_coords if y >= sig]
-			xy[cat].extend(top_xy_coords)
-			# print(cat, xy[cat])
-	
 		texts = []
 		for cat, _ in indices_of_significant_cats:
+
+			# get the corresponding collections for the plot of this category
+			collections_for_cat = []
+			for idx in cat_to_collection[cat]:
+				if idx < len(collections):
+
+					collections_for_cat.append(collections[idx].get_offsets().data)
+
+			collections_for_cat = np.concatenate(collections_for_cat)
+
+			# only annotate top variants for each category (to avoid cluttering the plot, use only 2 for the big plots)
+			top_xy_coords = sorted(collections_for_cat, key = lambda x: x[1], reverse = True)
+
+			# # I DONT THINK WE NEED THIS BECAUSE OF HOW I CHANGED THE CODE -- CHECK IF WE CAN REMOVE
+			# # choose all the points that are significant for this category
+			# top_xy_coords = [(x,y) for x,y in top_xy_coords if y >= sig]
+
+			# if we want to annotate less points than those that exist, only choose the top X points
+			if annotate_top < len(top_xy_coords):
+				top_xy_coords = top_xy_coords[:annotate_top]
+
 			index = 0
 			top = top_N.loc[top_N['Category'] == cat]
-			for xy_coords in xy[cat]:
+			for xy_coords in top_xy_coords:
 				x,y = xy_coords
 				
 				# get rsID from the top variants dataframe
 				rsID = top.iloc[index]['rsID'].split('_')[0]
 
 				# only annotate first 3 genes, the rest can be found in the results file (for clarity)
-				genes = ', '.join(res.loc[res['rsID'] == rsID, 'GENE'].unique().tolist()[:3])
+				genes = ', '.join(annotated_regressions.loc[annotated_regressions['rsID'] == rsID, 'GENE'].unique().tolist()[:3])
 				genes = textwrap.fill(genes, 25, break_long_words=False)
 
-				# # using the beta values, annotate the directionality of betas for each variant [expected, observed]
-				# direction = 'Dir=%s,%s' % ('-' if top.iloc[index]['beta'] < 0 else '+', '-' if top.iloc[index]['Original_beta'] < 0 else '+')
-				
 				# if we have more than 1 category, don't add the description to the plot
 				if n_categories > 1:
 					annotation = (rsID + ', ' + genes).strip()
 
-					# texts.append(ax.annotate(annotation,
-					# 	xy=(x,y), xycoords='data',
-					# 	xytext=(x, y+1), textcoords='data',
-					# 	horizontalalignment="right",
-					# 	arrowprops=dict(arrowstyle="->", connectionstyle="arc", alpha = 0.3),
-					# 	fontsize = 3, ha = 'center', va = 'center',))
 					texts.append(ax.text(x, y, annotation, ha = 'center', va = 'center', fontsize = 3))
 
 				else:
@@ -260,6 +232,14 @@ def manhattan_plot(regressions, sig, lower_outlier, upper_outlier, title, output
 					texts.append(ax.text(x, y, annotation, fontsize = 6, ha = 'center', va = 'center'))
 
 				index +=1
+	
+	if not non_significant_vars.empty:
+		# plot for the values below the significance level (should be circles)
+		ax = sns.stripplot(x = 'Category', y = '-log(p)', data = non_significant_vars, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'alpha': transparency})
+
+	# add the legends (we do it here to avoid adding more collections to ax.collections - simplifies logic)
+	if len(handles) > 0:
+		ax.legend(handles = handles, loc = 'best')
 
 	plt.title(title)
 	plt.axhline(y=sig, color='red', ls='--', lw = 0.5)  # plot threshold
@@ -281,7 +261,7 @@ def manhattan_plot(regressions, sig, lower_outlier, upper_outlier, title, output
 
 	ax.set_ylim([None, ax.get_ylim()[1]*1.15])
 
-	if res is not None:
+	if annotated_regressions is not None:
 		adjust_text(texts, arrowprops=dict(arrowstyle="->", color='black', lw=0.2))
 
 	else:
@@ -295,7 +275,7 @@ def significant_bar_plot(regressions, sig,title, output_file, save = True):
 	
 	print('Plotting bar plot for %s' % output_file)
 	regressions['Significant'] = regressions['"-log(p)"'] >= sig
-	fig, ax = plt.subplots(figsize = (12, 8))
+	_, ax = plt.subplots(figsize = (12, 8))
 
 	total_vars = {}
 	significant_vars = {}
@@ -305,7 +285,6 @@ def significant_bar_plot(regressions, sig,title, output_file, save = True):
 		significant_vars[cat] = regressions.loc[regressions['Category'] == cat, 'Significant'].sum()
 
 	categories = dict(sorted(significant_vars.items(), key=lambda item: item[1]/total_vars[item[0]])).keys()
-	not_significant = [(total_vars[cat] - significant_vars[cat]) for cat in categories]
 	significant = [100*significant_vars[cat]/total_vars[cat] for cat in categories]
 
 	p1 = ax.bar(categories, significant,  color='tab:blue', label = 'Significant associations')
@@ -323,8 +302,6 @@ def significant_bar_plot(regressions, sig,title, output_file, save = True):
 	for p in p1.patches:
 		width, height = p.get_width(), p.get_height()
 		x, y = p.get_xy() 
-		# ax.annotate(str(round(height*100, 2)) + '%', (p.get_x() + 0.1*width, p.get_y()+height + 0.005), 
-		#     fontsize=10, color='black')
 		width_addition = 0.2*width
 		height_addition = sig_max*0.02
 
@@ -348,11 +325,68 @@ def significant_bar_plot(regressions, sig,title, output_file, save = True):
 		plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
 		plt.close()
 
+# def volcano_plot(regressions, sig, title, output_file, save = True):
+
+def get_closest_genes(rsIDs, genes, upstream, downstream):
+	
+	# assume gene file always have 4 columns CHR, START, END, GENE
+	genes.columns = ['CHR', 'START', 'END', 'GENE']
+	
+	# remove the 'chr' prefix if present
+	genes['CHR'] = genes['CHR'].apply(lambda x: x.replace('chr', ''))
+	
+	# create dataframe to store results
+	res = pd.DataFrame(columns = ['CHR', 'START', 'END', 'GENE'])
+	
+	# group by the gene and the associated CHR (seems to be some instances of gene isoforms on multiple chromosomes)
+	gene_groups = genes.groupby(['GENE', 'CHR'])
+	
+	# for each grouping of gene, and then chromosome, get the tuple of the gene/chr, and save it in the results dataframe
+	gene_chr_tuples = gene_groups.apply(lambda x: x.name).reset_index(drop = True)
+	res['GENE'], res['CHR'] = gene_chr_tuples.apply(lambda x:x[0]).tolist(), gene_chr_tuples.apply(lambda x:x[1]).tolist()
+
+	# we will combine all the isoforms of the genes on the same chromosome into a "single gene"
+	# for the start, take the minimum of all the isoforms starting spot and for the end, take the maximum of all the isoforms ending spot
+	res['START'] = gene_groups['START'].min().values.tolist()
+	res['END'] = gene_groups['END'].max().values.tolist()
+	
+	# merge the rsIDs with the results dataframe based on the chromosome
+	merge = pd.merge(rsIDs, res, how = 'inner', on = 'CHR')
+	
+	# get the rows that are within the upstream and downstream regions
+	return merge.loc[(merge.POS >= merge.START - downstream*1000) & (merge.POS <= merge.END + upstream*1000)] 
+
+def annotate_genes(gene_file, rsid_df, down, up, regressions, output_dir, pheno_name):
+
+	rsid_df['CHR'] = rsid_df['CHR'].astype(str)
+	#read in the gene file
+	gene_df = pd.read_csv(gene_file, sep = '\t')
+	
+	# remove all the chr prefixes from the chromosome columns
+	gene_df['#chrom'] = gene_df['#chrom'].apply(lambda x: x.replace('chr', ''))
+	
+	# only retain the the chromosomes with properly formatted chromosome names
+	chroms = [str(x) for x in list(range(23)) + ['X', 'Y', 'XY']]
+	gene_df = gene_df[gene_df['#chrom'].isin(chroms)]
+
+	# get closest genes to eaach variant
+	res = get_closest_genes(rsid_df, gene_df, down, up).sort_values(by = 'rsID')
+
+	gene_map = defaultdict(list)
+
+	for _, row in res.iterrows():
+		gene_map[row['rsID']].append(row['GENE'])
+
+	regressions['Gene'] = regressions.apply(lambda x: ', '.join(gene_map[x['rsID']]), axis = 1)
+	regressions.to_csv(output_dir + '/' + pheno_name + '_pheWAS_results_with_nearby_genes.tab', sep = '\t', index = False)
+
+	return regressions, res
 
 def main():
 	parser = argparse.ArgumentParser(description='Plot significant phenotype data on a Manhattan Plot.')
 	parser.add_argument('--input', help='Input file', required=True)
 	parser.add_argument('--output', help='Output png', required=True)
+	parser.add_argument('--phenotype_name', help='Phenotype name', required=True)
 	parser.add_argument('--aggregate_title', help='Title of the plot of the aggregated data', required=False, default = None, nargs='+')
 	parser.add_argument('--mapping', help='Mapping of old categories to new ones', required=False, default = None)
 	parser.add_argument('--lower_outlier', help='Lower outlier threshold', required=False, default = 0, type = float)
@@ -361,16 +395,22 @@ def main():
 	parser.add_argument('--downstream', help = 'Number in KB to check for closest genes', required = False, default = 40, type = int)
 	parser.add_argument('--upstream', help = 'Number in KB to check for closest genes', required = False, default = 40, type = int)
 	parser.add_argument('--gene_file', help = 'File containing a list of genes use for finding closest genes', required = False, default = None)
-	parser.add_argument('--rsid_files', help = 'Files containing a list of rsIDs to use for finding closest genes', required = False, action = 'append')
+	parser.add_argument('--rsid_files', help = 'Files containing a list of rsIDs to use for finding closest genes', required = True, action = 'append')
 	parser.add_argument('--no_annotations', help = 'Don\'t add annotations', required = False, default = False, action = 'store_true')
 	parser.add_argument('--plot_top_categories', help = 'Plot the top categories as well', required = False, default = False, action = 'store_true')
 	parser.add_argument('--number_of_top_results', help = 'Number of top results to save', required = False, default = 10, type = int)
 	parser.add_argument('--plot_manhattan', help = 'Plot the manhattan plot', required = False, default = False, action = 'store_true')
 	parser.add_argument('--plot_bar', help = 'Plot the bar plot', required = False, default = False, action = 'store_true')
+	parser.add_argument('--clear_old_files', help = 'Clear old files', required = False, default = False, action = 'store_true')
+	parser.add_argument('--alpha', help = 'Significance threshold', required = False, default = 0.05, type = float)
+	parser.add_argument('--correction', help = 'Correction method', required = False, default = 'bonferroni', choices = ['bonferroni', 'sidak', 'holm-sidak', 'holm', 'simes-hochberg', 'hommel', 'fdr_bh', 'fdr_by', 'fdr_tsbh', 'fdr_tsbky', 'no_correction'])
+	parser.add_argument('--compare_original_betas', help = 'Compare original betas with corrected betas', required = False, default = True, action = 'store_true')
+	parser.add_argument('--transparency', help = 'Transparency of points', required = False, default = 0.75, type = float)
 
 	args = parser.parse_args()
 	input_file = args.input
 	output_file = args.output
+	phenotype_name = args.phenotype_name
 	aggregate_title = args.aggregate_title
 	mapping = args.mapping
 	lower_outlier = args.lower_outlier
@@ -385,44 +425,63 @@ def main():
 	N = args.number_of_top_results
 	plt_manhattan = args.plot_manhattan
 	plt_bar = args.plot_bar
+	clear_old_files = args.clear_old_files
+	alpha = args.alpha
+	correction = args.correction
+	compare_original_betas = args.compare_original_betas
+	transparency = args.transparency
 
-
+	# set a seed to make results reproducible (for the adjustText library)
 	np.random.seed(seed)
 
 	# Load data
 	regressions = pd.read_csv(input_file, sep='\t')
 
-	if aggregate_title is None:
-		pheno_cat = input_file.split('/')[-1].split('_')[-1].split('.')[0]
+	# get the directory of the output file
+	output_dir = os.path.dirname(output_file)
+	new_output_dir = output_dir + '/All' 
+	output_file = new_output_dir + '/' + os.path.basename(output_file)
 
+	# make directory for the aggregated results 
+	if clear_old_files:
+		shutil.rmtree(new_output_dir, ignore_errors=True)
+	
+	if not os.path.exists(new_output_dir):
+		os.mkdir(new_output_dir)
+
+	if aggregate_title is None:
+		# if no title is provided, name the file based on the type of plot
 		if plt_manhattan:
-			aggregate_title = 'PheWAS Results for %s (ALL) Variants' % (pheno_cat.capitalize())
+			aggregate_title = 'PheWAS Results for %s (ALL) Variants' % (phenotype_name.capitalize())
 			output_file = output_file.split('.')[0] + '_manhattan.png'
 		else:
-			aggregate_title = '%s (All Predictors) Variant Enrichment per Category' % (pheno_cat.capitalize())
+			aggregate_title = '%s (ALL) Variant Enrichment per Category' % (phenotype_name.capitalize())
 			output_file = output_file.split('.')[0] + '_bar.png'
 	else:
 		aggregate_title = ' '.join(aggregate_title)
 
+	# make directory for each of the phenotypes
 	phenos = regressions['Predictor'].unique()
-
 	pheno_map = {}
+	output_ext = '.' + output_file.rsplit('.', 1)[-1]
 
-	output_ext = os.path.basename(output_file).split('.')[1]
-	output_file_dir = os.path.dirname(output_file)
-	
-	if output_file_dir == '':
-		output_file_dir = '.'
+	if len(phenos) == 1:
+		for p in phenos:
+			new_output_dir_for_pheno = output_dir + '/' + p
 
-	for p in phenos:
-		title_and_output = ''
-		if plt_manhattan:
-			title_and_output = ('PheWAS Results for %s Variants' % (p.capitalize()), output_file_dir + '/'  + p.lower() + '_manhattan.' + output_ext)
-		else:
-			title_and_output = ('%s Variant Enrichment per Category' % (p.capitalize()), output_file_dir + '/' + p.lower() + '_bar.' + output_ext)
+			if clear_old_files:
+				shutil.rmtree(new_output_dir_for_pheno, ignore_errors=True)
 
-		pheno_map[p] = title_and_output
+			if not os.path.exists(new_output_dir_for_pheno):
+				os.mkdir(new_output_dir_for_pheno)
 
+			title_and_output = ''
+			if plt_manhattan:
+				title_and_output = ('PheWAS Results for %s Variants' % (p.capitalize()), new_output_dir_for_pheno + '/'  + p.lower() + '_manhattan' + output_ext)
+			else:
+				title_and_output = ('%s Variant Enrichment per Category' % (p.capitalize()), new_output_dir_for_pheno + '/' + p.lower() + '_bar' + output_ext)
+
+			pheno_map[p] = title_and_output
 
 	if mapping is not None:
 		# load mapping file - two column file, first with old categories, second with new categories
@@ -431,78 +490,61 @@ def main():
 		# map old categories to new ones
 		regressions['Category'] = regressions['Category'].map(mapping)
 
-	gene_df = None
-	rsid_df = None
-	res = None
+	# create a aggregate dataframe of all the snps
+	rsid_df = pd.DataFrame()
+
+	for f in rsid_files:
+		# read f and then concat to rsid_df
+		rsid_df = pd.concat([rsid_df, pd.read_csv(f, sep = '\t')])
+		rsid_df = rsid_df.drop_duplicates()
 	
-	if gene_file is not None:
-		gene_df = pd.read_csv(gene_file, sep = '\t')
-		
-		gene_df['#chrom'] = gene_df['#chrom'].apply(lambda x: x.replace('chr', ''))
-		chroms = [str(x) for x in list(range(23)) + ['X', 'Y', 'XY']]
-		gene_df = gene_df[gene_df['#chrom'].isin(chroms)]
+	# case where we have a variant like 3:100928901_CTT_C
+	rsid_df['rsID'] = rsid_df['rsID'].apply(lambda x: x.split('_')[0])
+	regressions['rsID'] = regressions['rsID'].apply(lambda x: x.split('_')[0])
 
-		rsid_df = pd.DataFrame()
-
-		if rsid_files == []:
-			print('Need to provide a list of rsID files if you want to use a gene file')
-			exit()
+	regressions['Original_beta'] = regressions.apply(lambda x: rsid_df.loc[rsid_df['rsID'] == x['rsID']]['BETA'].unique()[0], axis = 1)
+	regressions['Original_pval'] = regressions.apply(lambda x: rsid_df.loc[rsid_df['rsID'] == x['rsID']]['P'].unique()[0], axis = 1)
+	regressions['Direction'] = np.where(regressions['beta'] * regressions['Original_beta'] > 0, 'S', 'D')
+	
+	annotated_regressions = None
+	if not no_annotations:
+		if gene_file is not None:
+			regressions, annotated_regressions = annotate_genes(gene_file = gene_file, 
+											rsid_df = rsid_df, 
+											down = downstream, 
+											up = upstream, 
+											regressions = regressions, 
+											output_dir = output_dir, 
+											pheno_name = phenotype_name)
 		else:
-			for f in rsid_files:
-				# read f and then concat to rsid_df
-				rsid_df = pd.concat([rsid_df, pd.read_csv(f, sep = '\t')])
-				rsid_df = rsid_df.drop_duplicates()
-			rsid_df['CHR'] = rsid_df['CHR'].astype(str)
-		# get closest genes
-		res = get_closest_genes(rsid_df, gene_df, downstream, upstream).sort_values(by = 'rsID')
+			print('No gene file provided.')
+			exit()
 
-
-		gene_map = defaultdict(list)
-
-		for _, row in res.iterrows():
-			gene_map[row['rsID']].append(row['GENE'])
-
-		regressions['rsID'] = regressions['rsID'].apply(lambda x: x.split('_')[0])
-		
-		# case where we have a variant like 3:100928901_CTT_C
-		rsid_df['rsID'] = rsid_df['rsID'].apply(lambda x: x.split('_')[0])
-
-		regressions['Gene'] = regressions.apply(lambda x: ', '.join(gene_map[x['rsID']]), axis = 1)
-
-		regressions['Original_beta'] = regressions.apply(lambda x: rsid_df.loc[rsid_df['rsID'] == x['rsID']]['BETA'].unique()[0], axis = 1)
-		regressions['Original_pval'] = regressions.apply(lambda x: rsid_df.loc[rsid_df['rsID'] == x['rsID']]['P'].unique()[0], axis = 1)
-		regressions['Direction'] = np.where(regressions['beta'] * regressions['Original_beta'] > 0, 'S', 'D')
-		
 	if no_annotations:
-		res = None	
+		annotated_regressions = None	
 
-	# plot the aggregate data
-	alpha = 0.05
-	# Plot data
-	sig = -np.log10(alpha/regressions.shape[0])
+	# correct the pvalues using the method of choice
+	print('Correcting pvalues using %s correction' % (correction))
+	sig = -np.log10(multiple_testing_correction(pvalues = regressions['p-val'].dropna(), alpha = alpha, method = correction))
 
 	if plt_manhattan:
-		manhattan_plot(regressions, sig, lower_outlier, upper_outlier, aggregate_title, output_file, '', res, plt_top_cat, N)
+		manhattan_plot(regressions, sig, lower_outlier, upper_outlier, aggregate_title, output_file, '', annotated_regressions, plt_top_cat, N, compare_original_betas, transparency)
 
 	if plt_bar:
-		# remove extreme outliers to be coherent with manhattan plot
-		# outlier_removed = regressions[regressions['"-log(p)"'].between(regressions['"-log(p)"'].quantile(lower_outlier), regressions['"-log(p)"'].quantile(upper_outlier))]
 		outlier_removed = regressions.copy(deep = True)
 		significant_bar_plot(outlier_removed, sig, aggregate_title, output_file, True)
 
-	for pheno, (pheno_title, pheno_output_file) in pheno_map.items():
-		# plot the data for each phenotype
-		predictor_specific = regressions[regressions['Predictor'] == pheno].copy(deep = True)
+	if len(phenos) > 1:
+		for pheno, (pheno_title, pheno_output_file) in pheno_map.items():
+			# plot the data for each phenotype
+			predictor_specific = regressions[regressions['Predictor'] == pheno].copy(deep = True)
 
-		if plt_manhattan:
-			manhattan_plot(predictor_specific, sig,lower_outlier, upper_outlier, pheno_title, pheno_output_file, pheno, res, plt_top_cat, N)
-		
-		if plt_bar:
+			if plt_manhattan:
+				manhattan_plot(predictor_specific, sig, lower_outlier, upper_outlier, pheno_title, pheno_output_file, pheno, annotated_regressions, plt_top_cat, N, compare_original_betas, transparency)
+			
+			if plt_bar:
 
-			# remove extreme outliers to be coherent with manhattan plot
-			# predictor_specific = predictor_specific[predictor_specific['"-log(p)"'].between(predictor_specific['"-log(p)"'].quantile(lower_outlier), predictor_specific['"-log(p)"'].quantile(upper_outlier))]
-
-			significant_bar_plot(predictor_specific, sig, pheno_title, pheno_output_file, True)
+				significant_bar_plot(predictor_specific, sig, pheno_title, pheno_output_file, True)
 
 
 if __name__ == '__main__':
