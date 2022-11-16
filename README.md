@@ -56,6 +56,25 @@ pype \
 
 ```
 
+## Download HG19 Gene List
+
+Go to [UCSD Genome Browser Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables) and select the following parameters:
+
+clade: Mammal
+genome: Human
+assembly: Feb. 2009 (GRCh37/hg19)
+group: Genes and Gene Predictions
+track: NCBI RefSeq Genes
+table: UCSC RefSeq (refGene)
+
+region: genome
+
+output format: selected fields from primary and related tables
+output file name: hg19_gene_list.txt
+output file format: tab-separated values
+
+Then click on get output and download the file.
+
 ## Citation
 
 TBD
@@ -64,7 +83,7 @@ TBD
 
 Support for PheWAS on data from a greater variety of studies, faster PheWAS execution, and more visualization options.
 
-Move from annotating nearby genes using manual method to using the BioThings API.
+Move from annotating nearby genes using manual method using HG19 gene list to using the BioThings API.
 
 ## License
 This project is licensed under the Apache 2.0 license.
