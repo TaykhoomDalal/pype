@@ -247,12 +247,14 @@ def make_out_of_sample_pheno_file(sample_2_independent_dict, pheno_file, data_fi
 	index = 0
 	predictor_dict = {}
 	sample_file_data_list = {}
+	
+	sample_2_phenos_dict = {}
 
 	for file, (phenotypes, output_prefix) in sample_2_independent_dict.items():
 		predictor_dict[file] = pd.DataFrame(columns = exact_col_names)
 		sample_file_data_list[file] = pd.read_csv(file, sep='\t', header=None).iloc[:,0].tolist()
 
-		sample_2_independent_dict[file] = (extract_ukb_data_fields(col_names, phenotypes, data_fields_dir + '/' + output_prefix + '_ukb_pheno_fields.txt', True), output_prefix)
+		sample_2_phenos_dict[file] = extract_ukb_data_fields(col_names, phenotypes, data_fields_dir + '/' + output_prefix + '_ukb_pheno_fields.txt', True)
 
 	# can't read entire .tab file at once, very slow, so read it in chunk by chunk
 	chunksize = 1000 # number or rows we see at a time
@@ -261,11 +263,11 @@ def make_out_of_sample_pheno_file(sample_2_independent_dict, pheno_file, data_fi
 		# for each chunk of data
 		for chunk in reader:
 			
-			for file in sample_2_independent_dict.keys():
+			for file in sample_2_phenos_dict.keys():
 				
 				if phenotype_phewas:
 					phenotypes_to_remove = []
-					for sfile, (pheno_list, _) in sample_2_independent_dict.items():
+					for sfile, pheno_list in sample_2_phenos_dict.items():
 						if sfile != file:
 							phenotypes_to_remove += pheno_list
 
@@ -1062,8 +1064,8 @@ def main():
 												save_phenos = save_phenotypes,
 												pickle_intermediates = pickle_intermediates,
 												pickle_protocol = pickle_protocol,
-												phenotype_phewas = phenotype_phewas)
-												
+												phenotype_phewas = phenotype_phewas)	
+
 	elif reuse_phenotypes != '' and reuse_fixed_phenotypes == '':
 		# read in phenotype data
 		# all the files in the reuse_phenotypes directory are assumed to be phenotype files
