@@ -73,7 +73,11 @@ output format: selected fields from primary and related tables
 output file name: hg19_gene_list.txt
 output file format: tab-separated values
 
-Then click on get output and download the file.
+Then click on get output and select the following fields from hg19.refGene:
+chrom
+cdsStart
+cdsEnd
+name2
 
 ## Citation
 
