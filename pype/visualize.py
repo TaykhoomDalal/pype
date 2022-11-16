@@ -10,7 +10,7 @@ from adjustText import adjust_text
 from matplotlib.patches import Patch
 import matplotlib.ticker as mtick
 from matplotlib.lines import Line2D
-from utility_funcs import multiple_testing_correction
+from utility_funcs import multiple_testing_correction, annotate_genes
 import shutil
 
 def plot_significant_categories(idx_sig_cats, pheno, out_file, title, regressions, sig_thresh, annotated_regressions, N, cmp_orig_betas, transparency, color_map):
@@ -27,7 +27,7 @@ def plot_significant_categories(idx_sig_cats, pheno, out_file, title, regression
 
 		manhattan_plot(data_cat, sig_thresh, 0, 1, title_cat, output_file_cat, cat, annotated_regressions, plt_top_cat = False, N = N, compare_orig_betas = cmp_orig_betas, transparency = transparency, pheno_color = color_map[cat])
 
-def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annotated_regressions, plt_top_cat, N, compare_orig_betas, transparency, pheno_color = None):
+def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annotated_regressions, plt_top_cat, N, compare_orig_betas, transparency, pheno_color):
 	"""
 	Function to plot manhattan plot for a given phenotype
 
@@ -81,6 +81,11 @@ def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annot
 	print('\n')
 	
 	indices_of_significant_cats = [(cat, medians['Category'].tolist().index(cat)) for cat in sig_cats]
+
+	# if there are no significant categories, then don't plot anything
+	if len(indices_of_significant_cats) == 0:
+		print('No significant categories found')
+		return
 
 	# sort the categories by the med list
 	regressions = regressions.sort_values(by='Category', key = sorter)
@@ -162,7 +167,7 @@ def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annot
 			# Plot the -log(p) values against the category values, with the colors mapped to the categories, with down arrow == the direction of the beta value is negative
 			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_neg_dir, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'marker': 'v', 'alpha': transparency})
 			handles.append(Line2D([0], [0], color = color, marker = 'v', linestyle='None', label = 'Negative beta', alpha = transparency))
-	
+
 	# if we need to add annotations to the plot
 	if annotated_regressions is not None:
 		
@@ -212,7 +217,7 @@ def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annot
 				x,y = xy_coords
 				
 				# get rsID from the top variants dataframe
-				rsID = top.iloc[index]['rsID'].split('_')[0]
+				rsID = top.iloc[index]['Independent_Var'].split('_')[0]
 
 				# only annotate first 3 genes, the rest can be found in the results file (for clarity)
 				genes = ', '.join(annotated_regressions.loc[annotated_regressions['rsID'] == rsID, 'GENE'].unique().tolist()[:3])
@@ -271,7 +276,7 @@ def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annot
 	plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
 	plt.close()
 
-def significant_bar_plot(regressions, sig,title, output_file, save = True):
+def category_enrichment_plot(regressions, sig,title, output_file):
 	
 	print('Plotting bar plot for %s' % output_file)
 	regressions['Significant'] = regressions['"-log(p)"'] >= sig
@@ -321,66 +326,10 @@ def significant_bar_plot(regressions, sig,title, output_file, save = True):
 	plt.tight_layout()
 	plt.title(title)
 	
-	if save:
-		plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
-		plt.close()
+	plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
+	plt.close()
 
 # def volcano_plot(regressions, sig, title, output_file, save = True):
-
-def get_closest_genes(rsIDs, genes, upstream, downstream):
-	
-	# assume gene file always have 4 columns CHR, START, END, GENE
-	genes.columns = ['CHR', 'START', 'END', 'GENE']
-	
-	# remove the 'chr' prefix if present
-	genes['CHR'] = genes['CHR'].apply(lambda x: x.replace('chr', ''))
-	
-	# create dataframe to store results
-	res = pd.DataFrame(columns = ['CHR', 'START', 'END', 'GENE'])
-	
-	# group by the gene and the associated CHR (seems to be some instances of gene isoforms on multiple chromosomes)
-	gene_groups = genes.groupby(['GENE', 'CHR'])
-	
-	# for each grouping of gene, and then chromosome, get the tuple of the gene/chr, and save it in the results dataframe
-	gene_chr_tuples = gene_groups.apply(lambda x: x.name).reset_index(drop = True)
-	res['GENE'], res['CHR'] = gene_chr_tuples.apply(lambda x:x[0]).tolist(), gene_chr_tuples.apply(lambda x:x[1]).tolist()
-
-	# we will combine all the isoforms of the genes on the same chromosome into a "single gene"
-	# for the start, take the minimum of all the isoforms starting spot and for the end, take the maximum of all the isoforms ending spot
-	res['START'] = gene_groups['START'].min().values.tolist()
-	res['END'] = gene_groups['END'].max().values.tolist()
-	
-	# merge the rsIDs with the results dataframe based on the chromosome
-	merge = pd.merge(rsIDs, res, how = 'inner', on = 'CHR')
-	
-	# get the rows that are within the upstream and downstream regions
-	return merge.loc[(merge.POS >= merge.START - downstream*1000) & (merge.POS <= merge.END + upstream*1000)] 
-
-def annotate_genes(gene_file, rsid_df, down, up, regressions, output_dir, pheno_name):
-
-	rsid_df['CHR'] = rsid_df['CHR'].astype(str)
-	#read in the gene file
-	gene_df = pd.read_csv(gene_file, sep = '\t')
-	
-	# remove all the chr prefixes from the chromosome columns
-	gene_df['#chrom'] = gene_df['#chrom'].apply(lambda x: x.replace('chr', ''))
-	
-	# only retain the the chromosomes with properly formatted chromosome names
-	chroms = [str(x) for x in list(range(23)) + ['X', 'Y', 'XY']]
-	gene_df = gene_df[gene_df['#chrom'].isin(chroms)]
-
-	# get closest genes to eaach variant
-	res = get_closest_genes(rsid_df, gene_df, down, up).sort_values(by = 'rsID')
-
-	gene_map = defaultdict(list)
-
-	for _, row in res.iterrows():
-		gene_map[row['rsID']].append(row['GENE'])
-
-	regressions['Gene'] = regressions.apply(lambda x: ', '.join(gene_map[x['rsID']]), axis = 1)
-	regressions.to_csv(output_dir + '/' + pheno_name + '_pheWAS_results_with_nearby_genes.tab', sep = '\t', index = False)
-
-	return regressions, res
 
 def main():
 	parser = argparse.ArgumentParser(description='Plot significant phenotype data on a Manhattan Plot.')
@@ -406,6 +355,7 @@ def main():
 	parser.add_argument('--correction', help = 'Correction method', required = False, default = 'bonferroni', choices = ['bonferroni', 'sidak','fdr_bh', 'no_correction'])
 	parser.add_argument('--compare_original_betas', help = 'Compare original betas with corrected betas', required = False, default = False, action = 'store_true')
 	parser.add_argument('--transparency', help = 'Transparency of points', required = False, default = 0.75, type = float)
+	parser.add_argument('--color_map', help = 'Seaborn color map to use', required = False, default = 'rainbow', type = str)
 
 	args = parser.parse_args()
 	input_file = args.input
@@ -430,6 +380,7 @@ def main():
 	correction = args.correction
 	compare_original_betas = args.compare_original_betas
 	transparency = args.transparency
+	color_map = args.color_map
 
 	# set a seed to make results reproducible (for the adjustText library)
 	np.random.seed(seed)
@@ -461,27 +412,26 @@ def main():
 		aggregate_title = ' '.join(aggregate_title)
 
 	# make directory for each of the phenotypes
-	phenos = regressions['Predictor'].unique()
+	phenos = regressions['PheWAS_Category'].unique()
 	pheno_map = {}
 	output_ext = '.' + output_file.rsplit('.', 1)[-1]
 
-	if len(phenos) == 1:
-		for p in phenos:
-			new_output_dir_for_pheno = output_dir + '/' + p
+	for p in phenos:
+		new_output_dir_for_pheno = output_dir + '/' + p
 
-			if clear_old_files:
-				shutil.rmtree(new_output_dir_for_pheno, ignore_errors=True)
+		if clear_old_files:
+			shutil.rmtree(new_output_dir_for_pheno, ignore_errors=True)
 
-			if not os.path.exists(new_output_dir_for_pheno):
-				os.mkdir(new_output_dir_for_pheno)
+		if not os.path.exists(new_output_dir_for_pheno):
+			os.mkdir(new_output_dir_for_pheno)
 
-			title_and_output = ''
-			if plt_manhattan:
-				title_and_output = ('PheWAS Results for %s Variants' % (p.capitalize()), new_output_dir_for_pheno + '/'  + p.lower() + '_manhattan' + output_ext)
-			else:
-				title_and_output = ('%s Variant Enrichment per Category' % (p.capitalize()), new_output_dir_for_pheno + '/' + p.lower() + '_bar' + output_ext)
+		title_and_output = ''
+		if plt_manhattan:
+			title_and_output = ('PheWAS Results for %s Variants' % (p.capitalize()), new_output_dir_for_pheno + '/'  + p.lower() + '_manhattan' + output_ext)
+		else:
+			title_and_output = ('%s Variant Enrichment per Category' % (p.capitalize()), new_output_dir_for_pheno + '/' + p.lower() + '_bar' + output_ext)
 
-			pheno_map[p] = title_and_output
+		pheno_map[p] = title_and_output
 
 	if mapping is not None:
 		# load mapping file - two column file, first with old categories, second with new categories
@@ -498,6 +448,9 @@ def main():
 		rsid_df = pd.concat([rsid_df, pd.read_csv(f, sep = '\t')])
 		rsid_df = rsid_df.drop_duplicates()
 	
+	# rename Independent_Var to rsID
+	regressions = regressions.rename(columns = {'Independent_Var': 'rsID'})
+
 	# case where we have a variant like 3:100928901_CTT_C
 	rsid_df['rsID'] = rsid_df['rsID'].apply(lambda x: x.split('_')[0])
 	regressions['rsID'] = regressions['rsID'].apply(lambda x: x.split('_')[0])
@@ -507,7 +460,7 @@ def main():
 	regressions['Direction'] = np.where(regressions['beta'] * regressions['Original_beta'] > 0, 'S', 'D')
 	
 	annotated_regressions = None
-	if not no_annotations:
+	if not no_annotations and 'Gene' not in regressions.columns:
 		if gene_file is not None:
 			regressions, annotated_regressions = annotate_genes(gene_file = gene_file, 
 											rsid_df = rsid_df, 
@@ -516,6 +469,8 @@ def main():
 											regressions = regressions, 
 											output_dir = output_dir, 
 											pheno_name = phenotype_name)
+			# rename Independent_Var to rsID
+			regressions = regressions.rename(columns = {'rsID': 'Independent_Var'})
 		else:
 			print('No gene file provided.')
 			exit()
@@ -528,23 +483,56 @@ def main():
 	sig = -np.log10(multiple_testing_correction(pvalues = regressions['p-val'].dropna(), alpha = alpha, method = correction))
 
 	if plt_manhattan:
-		manhattan_plot(regressions, sig, lower_outlier, upper_outlier, aggregate_title, output_file, '', annotated_regressions, plt_top_cat, N, compare_original_betas, transparency)
+		manhattan_plot(regressions  = regressions, 
+						sig = sig, 
+						low = lower_outlier,
+						high = upper_outlier,
+						title = aggregate_title,
+						output_file = output_file,
+						pheno = '',
+						annotated_regressions = annotated_regressions, 
+						plt_top_cat = plt_top_cat, 
+						N = N, 
+						compare_orig_betas = compare_original_betas, 
+						transparency = transparency,
+						pheno_color = color_map)
 
 	if plt_bar:
 		outlier_removed = regressions.copy(deep = True)
-		significant_bar_plot(outlier_removed, sig, aggregate_title, output_file, True)
+		category_enrichment_plot(regressions = outlier_removed, 
+								sig = sig, 
+								title = aggregate_title, 
+								output_file = output_file)
+
 
 	if len(phenos) > 1:
 		for pheno, (pheno_title, pheno_output_file) in pheno_map.items():
+
 			# plot the data for each phenotype
-			predictor_specific = regressions[regressions['Predictor'] == pheno].copy(deep = True)
+			predictor_specific = regressions[regressions['PheWAS_Category'] == pheno].copy(deep = True)
 
 			if plt_manhattan:
-				manhattan_plot(predictor_specific, sig, lower_outlier, upper_outlier, pheno_title, pheno_output_file, pheno, annotated_regressions, plt_top_cat, N, compare_original_betas, transparency)
-			
-			if plt_bar:
+				print('Plotting %s Manhattan plot' % (pheno))
+				manhattan_plot(regressions  = predictor_specific, 
+								sig = sig, 
+								low = lower_outlier,
+								high = upper_outlier,
+								title = pheno_title,
+								output_file = pheno_output_file,
+								pheno = pheno,
+								annotated_regressions = annotated_regressions, 
+								plt_top_cat = plt_top_cat, 
+								N = N, 
+								compare_orig_betas = compare_original_betas, 
+								transparency = transparency,
+								pheno_color = color_map)
 
-				significant_bar_plot(predictor_specific, sig, pheno_title, pheno_output_file, True)
+			if plt_bar:
+				print('Plotting %s bar plot' % (pheno))
+				category_enrichment_plot(regressions = predictor_specific, 
+								sig = sig, 
+								title = pheno_title, 
+								output_file = pheno_output_file)
 
 
 if __name__ == '__main__':
