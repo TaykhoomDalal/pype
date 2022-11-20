@@ -18,55 +18,10 @@ from multiprocessing import Process, Manager
 from utility_funcs import multiple_testing_correction, annotate_genes
 from datetime import datetime
 import time
+import constants
 
 # sentinel lets us know if the process has finished
 SENTINEL = None
-
-# url for searching ukbb data fields (if updated in future, supply new URL with all fields selected)
-# I.E. select all fields in Stability, Strata, Item Type, Value Type, & leave 4 XXXX in srch= part of url
-current_year = str(datetime.now().year)
-DEFAULT_SHOWCASE_URL = 'https://biobank.ndph.ox.ac.uk/showcase/search.cgi?wot=0&srch=XXXX&sta0=on&sta1=on&sta2=on&sta3=on&sta4=on&str0=on&str3=on&str1=on&str2=on&fit0=on&fit10=on&fit20=on&fit30=on&fvt11=on&fvt21=on&fvt22=on&fvt31=on&fvt41=on&fvt51=on&fvt61=on&fvt101=on&yfirst=2000&ylast=' + current_year
-
-# adapted code from Alan's MI_Classes.py file
-# add more mappings here if you need to fix other covariates
-dict_UKB_fields_to_names =  {'f.31.0.0': 'Sex', 
-							'f.34.0.0': 'Year_of_birth', 
-							'f.52.0.0': 'Month_of_birth',
-							'f.53.0.0': 'Date_attended_center_0', 
-							'f.53.1.0': 'Date_attended_center_1',
-							'f.53.2.0': 'Date_attended_center_2', 
-							'f.53.3.0': 'Date_attended_center_3',
-							'f.54.0.0': 'Center_of_attendance_0',
-							'f.54.1.0': 'Center_of_attendance_1',
-							'f.54.2.0': 'Center_of_attendance_2',
-							'f.54.3.0': 'Center_of_attendance_3',
-							'f.21000.0.0': 'Ethnicity', 
-							'f.21000.1.0': 'Ethnicity_1', 
-							'f.21000.2.0': 'Ethnicity_2',
-							'f.22001.0.0': 'Sex_genetic'}
-
-# One hot encode ethnicity
-dict_ethnicity_codes = {'1': 'Ethnicity.White', '1001': 'Ethnicity.British', '1002': 'Ethnicity.Irish',
-						'1003': 'Ethnicity.White_Other',
-						'2': 'Ethnicity.Mixed', '2001': 'Ethnicity.White_and_Black_Caribbean',
-						'2002': 'Ethnicity.White_and_Black_African',
-						'2003': 'Ethnicity.White_and_Asian', '2004': 'Ethnicity.Mixed_Other',
-						'3': 'Ethnicity.Asian', '3001': 'Ethnicity.Indian', '3002': 'Ethnicity.Pakistani',
-						'3003': 'Ethnicity.Bangladeshi', '3004': 'Ethnicity.Asian_Other',
-						'4': 'Ethnicity.Black', '4001': 'Ethnicity.Caribbean', '4002': 'Ethnicity.African',
-						'4003': 'Ethnicity.Black_Other',
-						'5': 'Ethnicity.Chinese',
-						'6': 'Ethnicity.Other_ethnicity',
-						'-1': 'Ethnicity.Do_not_know',
-						'-3': 'Ethnicity.Prefer_not_to_answer',
-						'-5': 'Ethnicity.NA'}
-
-# mapping of ethnicity category to smaller categories
-dict_ethnicity_mapping = {'Ethnicity.White' : ['Ethnicity.White', 'Ethnicity.British', 'Ethnicity.Irish', 'Ethnicity.White_Other'],
-						'Ethnicity.Mixed' : ['Ethnicity.Mixed','Ethnicity.White_and_Black_Caribbean','Ethnicity.White_and_Black_African', 'Ethnicity.White_and_Asian', 'Ethnicity.Mixed_Other'],
-						'Ethnicity.Asian': ['Ethnicity.Asian', 'Ethnicity.Indian', 'Ethnicity.Pakistani', 'Ethnicity.Bangladeshi','Ethnicity.Asian_Other'],
-						'Ethnicity.Black': ['Ethnicity.Black', 'Ethnicity.Caribbean', 'Ethnicity.African','Ethnicity.Black_Other'],
-						'Ethnicity.Other': ['Ethnicity.Other_ethnicity', 'Ethnicity.Do_not_know','Ethnicity.Prefer_not_to_answer','Ethnicity.NA']}
 
 def query_ukbb(url, get_categories = False):
 	# Get the html file
@@ -111,17 +66,33 @@ def get_descriptions_and_categories(fields):
 
 		fields, field_descriptions, field_categories = query_ukbb(url, True)
 
+		if len(fields) == 0 or len(field_descriptions) == 0 or len(field_categories) == 0:
+			retries = 5
+			# retry if the query failed
+			while(len(fields) == 0 and len(field_descriptions) == 0 and len(field_categories) == 0):
+
+				if retries == 0:
+					print("Query failed for field %s. Skipping field" % field)
+					break
+				
+				time.sleep(0.05) # sleep for longer if we have to retry
+
+				fields, field_descriptions, field_categories = query_ukbb(url, True)
+				print("Query failed for field %s. Retrying %d more times" % (field, retries))
+				retries -= 1
+
 		field_dict[fields[0]] = field_descriptions[0], field_categories[0]
-	
+
 	return field_dict
 
-def grab_data_fields(url, out_dir):
+def grab_data_fields(url, out_dir, save = True):
 	
 	fields = query_ukbb(url)
 
-	# write the data-fields to the output file
-	with open(out_dir + '/data_fields.txt', 'w') as f:
-		f.write("\n".join(fields))
+	if save:
+		# write the data-fields to the output file
+		with open(out_dir + '/data_fields.txt', 'w') as f:
+			f.write("\n".join(fields))
 
 	field_dict = get_descriptions_and_categories(fields)
 
@@ -250,11 +221,12 @@ def make_out_of_sample_pheno_file(sample_2_independent_dict, pheno_file, data_fi
 	
 	sample_2_phenos_dict = {}
 
-	for file, (phenotypes, output_prefix) in sample_2_independent_dict.items():
+	for file, (independent_vars, output_prefix) in sample_2_independent_dict.items(): # we only need independent_vars for a phenotype phewas, and in that case, the first item in the tuple is the phenotypes
 		predictor_dict[file] = pd.DataFrame(columns = exact_col_names)
 		sample_file_data_list[file] = pd.read_csv(file, sep='\t', header=None).iloc[:,0].tolist()
 
-		sample_2_phenos_dict[file] = extract_ukb_data_fields(col_names, phenotypes, data_fields_dir + '/' + output_prefix + '_ukb_pheno_fields.txt', True)
+		if phenotype_phewas:
+			sample_2_phenos_dict[file] = extract_ukb_data_fields(col_names, independent_vars, data_fields_dir + '/' + output_prefix + '_ukb_pheno_fields.txt', True)
 
 	# can't read entire .tab file at once, very slow, so read it in chunk by chunk
 	chunksize = 1000 # number or rows we see at a time
@@ -263,7 +235,7 @@ def make_out_of_sample_pheno_file(sample_2_independent_dict, pheno_file, data_fi
 		# for each chunk of data
 		for chunk in reader:
 			
-			for file in sample_2_phenos_dict.keys():
+			for file in sample_2_independent_dict.keys():
 				
 				if phenotype_phewas:
 					phenotypes_to_remove = []
@@ -355,9 +327,9 @@ def encode_ethnicity(pheno):
 	pheno['Ethnicity'] = pheno['Ethnicity'].fillna(-5).astype(int).astype(str)
 	eth = pd.get_dummies(pheno['Ethnicity'])
 	pheno.drop(['Ethnicity'], axis=1, inplace=True)
-	eth.rename(columns=dict_ethnicity_codes, inplace=True)
+	eth.rename(columns=constants.dict_ethnicity_codes, inplace=True)
 
-	for key, value in dict_ethnicity_mapping.items():
+	for key, value in constants.dict_ethnicity_mapping.items():
 		for eth_cat in value:
 			if eth_cat not in eth:
 				continue
@@ -502,7 +474,7 @@ def run_genotype_pheWAS(sample_2_independent_dict, pheno_dict, out_dir, raw_dir,
 					# get list of columns starting with 'Ethnicity'
 					cols_to_remove = [col for col in cov_headers if col.startswith('Ethnicity')]
 
-					# remove all the columns starting with ethnicity since we will only be looking at once ethnicity (ethnicity covariate is uneeded)
+					# remove all the columns starting with ethnicity since we will only be looking at one ethnicity (ethnicity covariate is uneeded)
 					cov_headers_ethnicity_fixed = [cov for cov in cov_headers if cov not in cols_to_remove]
 
 					# only keep individuals from the chosen population
@@ -513,8 +485,6 @@ def run_genotype_pheWAS(sample_2_independent_dict, pheno_dict, out_dir, raw_dir,
 
 					# Take the difference between the covariate headers and the phenotype headers
 					diff_cov_pheno = list(set(pheno.columns) - set(cov_headers_ethnicity_fixed))
-
-					
 
 					# add each the phewas files needed to run each phewas to the queue for the workers to use
 					process_queue.put((pheno, geno_data, diff_cov_pheno, cov_headers_ethnicity_fixed, results_file))
@@ -535,6 +505,7 @@ def run_genotype_pheWAS(sample_2_independent_dict, pheno_dict, out_dir, raw_dir,
 
 	# wait for all the workers to finish before continuing with the main code
 	for p in pool:
+		p.close()
 		p.join()
 
 def run_phenotype_pheWAS(sample_2_independent_dict, pheno_dict, out_dir, data_fields_dir, reg, thresh, threads, add_covariates, ethnicity_groups):
@@ -733,7 +704,7 @@ def main():
 	parser.add_argument('--sample_file', help='File (or list of files) of sample IDs', required=True, action='append')
 	parser.add_argument('--keep', help='Keep the samples (if ommitted, remove the samples)', required=False, default = False, action = 'store_true')
 	parser.add_argument('--alpha', help = 'Alpha value to use for multiple testing', required = False, default = 0.05, type = float)
-	parser.add_argument('--correction', help = 'Correction method to use', required = True, default = 'bonferroni', choices = ['bonferroni', 'sidak', 'fdr_bh', 'no_correction'])
+	parser.add_argument('--correction', help = 'Correction method to use', required = False, default = 'bonferroni', choices = ['bonferroni', 'sidak', 'fdr_bh', 'no_correction'])
 	parser.add_argument('--covariates_file', help='File of covariate data fields', required=False, default = None, type = str)
 	parser.add_argument('--ethnicity_groups', help = 'Ethnicity groups to use for pheWAS', required = False, default = ['Ethnicity.White'], choices = ['Ethnicity.White', 'Ethnicity.Asian', 'Ethnicity.Black', 'Ethnicity.Other'],  nargs = '+')
 	parser.add_argument('--output_prefix', help = 'Prefix for output files (specify one for each sample file)', required = True, action = 'append')
@@ -762,8 +733,8 @@ def main():
 	parser.add_argument('--covariate_name_map', help = 'File containing map from ukbb field name to custom covariate name [should be pandas dataframe]', required = False, default = None, type = str)
 	parser.add_argument('--data_showcase_search_url', help = 'Url to search for data showcase', required = False, default = None, type = str)
 	parser.add_argument('--gene_file', help = 'File containing list of genes and their positions. Used to annotate variants with nearby genes', required = False, default = None, type = str)
-	parser.add_argument('--downstream', help = 'Number in KB to check for closest genes', required = False, default = 40, type = int)
-	parser.add_argument('--upstream', help = 'Number in KB to check for closest genes', required = False, default = 40, type = int)
+	parser.add_argument('--downstream', help = 'Number in KB to check for closest genes', required = False, default = 10, type = int)
+	parser.add_argument('--upstream', help = 'Number in KB to check for closest genes', required = False, default = 10, type = int)
 	parser.add_argument('--annotate', help = 'If you want to annotate the variants / genes with their function / consequences', required = False, default = False, action = 'store_true')
 
 	args = parser.parse_args()
@@ -832,7 +803,7 @@ def main():
 			exit()
 	elif phenotypes_lists and not variant_files and not phenotypes_files:
 		phenotype_phewas = True
-
+	
 		if len(phenotypes_lists) != len(sample_files):
 			print('Error: You must specify the same number of phenotype lists and sample files.')
 			exit()
@@ -857,13 +828,13 @@ def main():
 		print('Warning: You have specified both a file containing dependent phenotypes and a list of dependent phenotypes. The list will be used.')
 		dependent_phenotypes_file = None
 
-	if reuse_phenotypes != '' and old_data_fields_dir == '':
+	if (reuse_phenotypes != '' or reuse_fixed_phenotypes != '') and old_data_fields_dir == '':
 		print('Error: You must specify the directory where the old data fields are stored if you want to reuse phenotypes')
 		exit()
 	
 	if reuse_phenotypes != '' and reuse_fixed_phenotypes != '':
 		print('Warning: You provided both a directory to reuse phenotypes and a directory to reuse covariate fixed phenotypes. Only the fixed phenotypes will be reused.')
-		reuse_fixed_phenotypes = ''
+		reuse_phenotypes = ''
 
 	if len(output_prefixes) != len(sample_files):
 		print('Error: You must specify the same number of output prefixes as sample files.')
@@ -884,6 +855,8 @@ def main():
 	if data_showcase_search_url is not None:
 		global DEFAULT_SHOWCASE_URL 
 		DEFAULT_SHOWCASE_URL = data_showcase_search_url
+	else:
+		DEFAULT_SHOWCASE_URL = constants.DEFAULT_SHOWCASE_URL
 
 	# ----------------------------------------------------------------------------------------- #
 
@@ -912,51 +885,54 @@ def main():
 	if genotype_phewas and geno_dir != reuse_genos:
 		
 		if reuse_genos == '': # only remake geno_dir if we aren't using another directory for the geno files
-			print('deleting geno_dir since we aren\'t reusing it')
+			print("Deleting the geno_dir if it exists (since we aren't reusing it) and creating a new geno_dir")
 			shutil.rmtree(geno_dir, ignore_errors=True)
 			os.makedirs(geno_dir)
 
 	if genotype_phewas and raw_dir != reuse_raw_bfiles:
 		
 		if reuse_raw_bfiles == '': # only remake raw_bfile dir if we aren't using another directory for the raw files
-			print('deleting raw_dir since we aren\'t reusing it')
+			print("Deleting the raw_dir if it exists (since we aren't reusing it) and creating a new raw_dir")
 			shutil.rmtree(raw_dir, ignore_errors=True)
 			os.makedirs(raw_dir)
 
-	if pheno_dir != reuse_phenotypes and pheno_dir != reuse_fixed_phenotypes:
-		print('deleting pheno_dir since we aren\'t reusing it')
+	if pheno_dir != reuse_phenotypes and reuse_fixed_phenotypes == '':
+		print("Deleting the pheno_dir if it exists (since we aren't reusing it) and creating a new pheno_dir")
 		shutil.rmtree(pheno_dir, ignore_errors=True)
 		os.makedirs(pheno_dir)
 	
-	if data_fields_dir != old_data_fields_dir:
-		print('deleting data_fields_dir since we aren\'t reusing it')
+	if old_data_fields_dir == '' or (reuse_phenotypes != '' and reuse_fixed_phenotypes == ''):
+		print("Deleting the data_fields_dir if it exists (since we aren't reusing it) and creating a new data_fields_dir")
 		shutil.rmtree(data_fields_dir, ignore_errors=True)
 		os.makedirs(data_fields_dir)
 	
-	print('deleting and recreating old pheWAS_dir (if it exists)')
+	print("Deleting the pheWAS_dir if it exists and creating a new pheWAS_dir")
 	shutil.rmtree(pheWAS_dir, ignore_errors=True)
 	os.makedirs(pheWAS_dir)
 	# ----------------------------------------------------------------------------------------- #
 
 	# ---------------------------GET FIELD DESCRIPTIONS / CATEGORIES--------------------------- #
 	field_dict = {}
+	save = old_data_fields_dir == '' and reuse_fixed_phenotypes == ''
 	if ukbiobank_url is not None:
-		field_dict = grab_data_fields(url = ukbiobank_url, out_dir = data_fields_dir)
+		field_dict = grab_data_fields(url = ukbiobank_url, out_dir = data_fields_dir, save = save)
 	elif dependent_phenotypes_file is not None:
 		# load the file containing the dependent_phenotypes into a list
 		
 		with open(dependent_phenotypes_file, 'r') as f:
 			dependent_phenotypes = f.read().splitlines()
 
-		field_dict = get_descriptions_and_categories(fields = dependent_phenotypes)
+		field_dict = get_descriptions_and_categories(fields = dependent_phenotypes, save = save)
 	else: # dependent_phenotypes_list is not None
-		field_dict = get_descriptions_and_categories(fields = dependent_phenotypes_list)
+		field_dict = get_descriptions_and_categories(fields = dependent_phenotypes_list, save = save)
 	# ----------------------------------------------------------------------------------------- #
 
 	covariates = None
 	if covariates_file is not None:
-		# copy covariates file to the new directory to keep all data field files together
-		shutil.copy(covariates_file, data_fields_dir + '/cov_fields.txt')
+		
+		if old_data_fields_dir == '' or (reuse_phenotypes != '' and reuse_fixed_phenotypes == ''):
+			# copy covariates file to the new directory to keep all data field files together
+			shutil.copy(covariates_file, data_fields_dir + '/cov_fields.txt')
 		
 		# read covariates into a list
 		covariates = pd.read_csv(covariates_file, sep = '\t', usecols=[0], dtype = str).iloc[:,0].values.tolist()
@@ -999,7 +975,6 @@ def main():
 			field_dict_for_independent_phenos = {**field_dict_for_independent_phenos, **temp_dict}
 
 			samples_2_ind[sfile] = (phenotypes, oprefix)
-
 	else:
 		samples_2_ind = {sfile:(indfile, oprefix) for sfile, indfile, oprefix in zip(sorted(sample_files), phenotypes_lists, sorted(output_prefixes))}
 
@@ -1086,8 +1061,7 @@ def main():
 				if file.startswith(output_prefix + '_'):
 					data_dict[sfile] = f
 					break
-	
-		phenof = pd.read_csv(old_data_fields_dir + '/' + 'ukb_data_fields.txt', sep = '\t', usecols = [0], dtype = str).iloc[:,0].values.tolist()
+		phenof = pd.read_csv(old_data_fields_dir + '/ukb_data_fields.txt', sep = '\t', usecols = [0], header = None, dtype = str).iloc[:,0].values.tolist()
 
 	pheWAS_ready_phenos_dict = {}
 	if reuse_fixed_phenotypes == '':
@@ -1098,7 +1072,8 @@ def main():
 				covariate_name_map = pd.read_csv(covariate_name_map, sep = '\t')
 				covariate_name_map = covariate_name_map.set_index('Data_field')['Name'].to_dict()
 			else:
-				covariate_name_map = dict_UKB_fields_to_names
+				covariate_name_map = constants.dict_UKB_fields_to_names
+			print(phenof)
 			# fix the covariate data (one hot encoding, calculating age, etc)
 			pheWAS_ready_phenos_dict = fix_covariate_data(pheno_dict = data_dict, 
 													phenotype_fields = phenof, 
@@ -1129,6 +1104,7 @@ def main():
 				if file.startswith(output_prefix + '_'):
 					pheWAS_ready_phenos_dict[sfile] = f
 					break
+		data_fields_dir = old_data_fields_dir
 
 	if genotype_phewas:
 		# run the pheWAS across all the variants 
