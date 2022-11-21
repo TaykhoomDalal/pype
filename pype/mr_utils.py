@@ -33,11 +33,11 @@ def findWord(word, phrase):
 
 def cache_all_studies():
     all_studies = gwasinfo()
-    utility_funcs.pickle_object(all_studies, 'all_studies.pkl')
+    utility_funcs.pickle_object(all_studies, './cached/all_studies.pkl')
 
 def get_all_studies():
     try:
-        return utility_funcs.unpickle_object('all_studies.pkl')
+        return utility_funcs.unpickle_object('./cached/all_studies.pkl')
     except:
         raise ValueError('No cached studies found. Please run_mr with --cache_all_studies flag')
 
@@ -126,6 +126,9 @@ def harmonize(sample1, sample2, suffix1, suffix2):
     
     # TODO: add more in depth harmonization capabilties
 
+    sample1['CHR'] = sample1['CHR'].replace('X', 23).replace('Y', 24)
+    sample2['CHR'] = sample2['CHR'].replace('X', 23).replace('Y', 24)
+
     # drop uneeded chr and pos cols
     s1 = sample1.drop(['POS'], axis = 1, errors = 'ignore')
     s2 = sample2.drop(['POS'], axis = 1, errors = 'ignore')
@@ -138,14 +141,16 @@ def harmonize(sample1, sample2, suffix1, suffix2):
                                      # 'Non_Effect': 'A2'})
     
     # retain only the columns we care about in this order
-    merged = merged[['rsID', 'CHR', 'BETA' + suffix1, 'BETA' + suffix2, 'P' + suffix1, 'P' + suffix2, 'SE' + suffix1, 'SE' + suffix2, 'N']]
-   
     if 'N' in sample1.columns or 'N' in sample2.columns:
+        merged = merged[['rsID', 'CHR', 'BETA' + suffix1, 'BETA' + suffix2, 'P' + suffix1, 'P' + suffix2, 'SE' + suffix1, 'SE' + suffix2, 'N']]
+        
         merged['N'] = merged['N'].replace(np.nan, -1)
 
         # drop duplicates, keeping the values with greatest number of samples (if data is available)
         merged = merged.loc[merged.groupby('rsID')['N'].idxmax()].reset_index(drop = True)
-
+    else:
+        merged = merged[['rsID', 'CHR', 'BETA' + suffix1, 'BETA' + suffix2, 'P' + suffix1, 'P' + suffix2, 'SE' + suffix1, 'SE' + suffix2]]
+   
     # if the dataframe is empty, we print an error message
     if merged.empty:
         print("The dataframe is empty")
