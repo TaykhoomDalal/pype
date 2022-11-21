@@ -257,11 +257,6 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 
 	if annotate is not None:
 		adjust_text(texts, arrowprops=dict(arrowstyle="->", color='black', lw=0.2))
-	else:
-		# get the extension from the output file (the last .) using rsplit
-		output_file_split = output_file.rsplit('.', 1)
-		ext = '.' + output_file_split[-1]
-		output_file = output_file_split[0] + '_no_annotations' + ext
 
 	# finally save the figure
 	plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
@@ -679,10 +674,15 @@ def main():
 
 	# for each plot type, create a directory for it, the aggregated plots, and the separate plots if present, deleting each if they already exist
 	if plot_manhattan:
+		if not annotate:
+			name = 'manhattan_not_annotated'
+		else:
+			name = 'manhattan_annotated'
+
 		manhattan_agg_dir, manhattan_sep_dir = createPlotSpecificDirectories(main_directory = directory_name, 
 																			output_prefix = output_prefix,
 																			clear = clear_old_files, 
-																			plot_type = 'manhattan', 
+																			plot_type = name, 
 																			separate_plots = plot_phewas_categories_separately)
 	if plot_category_enrichment:
 		category_enrichment_agg_dir, category_enrichment_sep_dir = createPlotSpecificDirectories(main_directory = directory_name,
@@ -691,10 +691,15 @@ def main():
 																								plot_type = 'category_enrichment',
 																								separate_plots = plot_phewas_categories_separately)
 	if plot_volcano:
+		if not annotate:
+			name = 'volcano_not_annotated'
+		else:
+			name = 'volcano_annotated'
+
 		volcano_agg_dir, volcano_sep_dir = createPlotSpecificDirectories(main_directory = directory_name,
 																		output_prefix = output_prefix,
 																		clear = clear_old_files,
-																		plot_type = 'volcano',
+																		plot_type = name,
 																		separate_plots = plot_phewas_categories_separately)
 	
 	MANHATTAN = 0
