@@ -7,7 +7,7 @@ import traceback
 
 # Code in this file was inspired from the pyPheWAS package, specifically from the pyPhewasCorev2.py file.
 
-out_cols = ['Data_Field', 'Independent_Var', 'Samples', '\"-log(p)\"','p-val', 'beta', 'std_error']
+out_cols = ["Data_Field", "Independent_Var", "Samples", "-log(p)","p-val", "beta", "std_error"]
 
 def run_regresssion(independent_variable, phenotype, covariate_data = None, covariates = '', regularization = False) -> list:
 
