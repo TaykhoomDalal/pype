@@ -125,7 +125,7 @@ Then click on get output and select the following fields from hg19.refGene:
   <img src="assets/UCSC_genome_browser_img2.png" width="800" />
 </p>
 
-Finally, save this file to the cached folder under the pype directory.
+Finally, click on get output, downloading the file, and then save this file to the cached folder under the pype directory.
 
 ## Citation
 
