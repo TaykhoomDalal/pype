@@ -13,73 +13,55 @@ from matplotlib.lines import Line2D
 from utility_funcs import multiple_testing_correction, annotate_genes
 import shutil
 
-def plot_significant_categories(idx_sig_cats, pheno, out_file, title, regressions, sig_thresh, annotated_regressions, N, cmp_orig_betas, transparency, color_map):
+def plot_significant_categories(idx_sig_cats, out_file, title, phewas_results, sig_thresh, annotate, N, cmp_orig_betas, transparency, color_map):
 	# for each category in the significant categories
 	for cat, _ in idx_sig_cats:
 		
-		if pheno == '': # if we are plotting aggregate results
-			output_file_cat = out_file.split('.')[0] + '_' + cat + '.png'
-		else: # if we are plotting results for a category within the results for a certain phenotype
-			output_file_cat = out_file.split('.')[0] + '_' + cat + '_' + pheno + '.png'
+		output_file_cat = out_file.rsplit('.', 1)[0] + '_' + cat + '.png'
 
 		title_cat = title + ' - ' + cat
-		data_cat = regressions.loc[regressions['Category'] == cat]
+		data_cat = phewas_results.loc[phewas_results['Category'] == cat]
 
-		manhattan_plot(data_cat, sig_thresh, 0, 1, title_cat, output_file_cat, cat, annotated_regressions, plt_top_cat = False, N = N, compare_orig_betas = cmp_orig_betas, transparency = transparency, pheno_color = color_map[cat])
+		manhattan_plot(data_cat, sig_thresh, 0, 1, title_cat, output_file_cat, cat, annotate, plt_top_cat = False, N = N, compare_orig_betas = cmp_orig_betas, transparency = transparency, pheno_color = color_map[cat])
 
-def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annotated_regressions, plt_top_cat, N, compare_orig_betas, transparency, pheno_color):
+def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, annotate, plt_top_cat, N, compare_orig_betas, transparency, pheno_color):
 	"""
-	Function to plot manhattan plot for a given phenotype
-
-	:param regressions: pandas dataframe containing the regression results
-	:param thresh: p-value significance threshold
-	:param title: the title of the file for the manhattan plot
-	:param output_file: name of the outputfile along with extension
-	
-	:type regressions: pandas DataFrame
-	:type significance level: float
-	:type title: string
-	:type output_file: string
+	Function to plot manhattan plots from PheWAS results
 	"""
 
-	# save the top variants to a file (before filtering out the super low p-values)
-	all_top = regressions.loc[regressions['"-log(p)"'] >= sig].groupby('Category').apply(lambda x : x.sort_values(by = '"-log(p)"', ascending = False).reset_index(drop = True))
-	all_top.to_csv(output_file.split('.')[0] + '_top_variants.tsv', sep = '\t', index = False)
+	# save the significant results to a file (before filtering out the super low p-values)
+	all_top = phewas_results.loc[phewas_results["-log(p)"] >= sig].groupby('Category').apply(lambda x : x.sort_values(by = "-log(p)", ascending = False).reset_index(drop = True))
+	all_top.to_csv(output_file.rsplit('.', 1)[0] + '_significant_results.tsv', sep = '\t', index = False)
 
 	# remove extreme outliers in order to be able to visualize the data more coherently
-	regressions = regressions[regressions['"-log(p)"'].between(regressions['"-log(p)"'].quantile(low), regressions['"-log(p)"'].quantile(high))]
+	phewas_results = phewas_results[phewas_results["-log(p)"].between(phewas_results["-log(p)"].quantile(low), phewas_results["-log(p)"].quantile(high))]
 	
-	# remove all variants with p-value above the significance level
-	# groupby category and find median of all these significant variants
+	# remove all results with p-value above the significance level
+	# groupby category and find median of all these significant results
 	# reset the index and sort by the log pvalues so largest will be at the right end of the plot
-	medians = regressions.loc[regressions['"-log(p)"'] >= sig].groupby('Category')['"-log(p)"'].mean().reset_index().sort_values(by='"-log(p)"').reset_index(drop=True)
+	medians = phewas_results.loc[phewas_results["-log(p)"] >= sig].groupby('Category')["-log(p)"].mean().reset_index().sort_values(by="-log(p)").reset_index(drop=True)
 
-	# medians = significant_vars.groupby('Category')['"-log(p)"'].nlargest(1).reset_index(level=1, drop=True).sort_values()
-	# print(medians.index)
 
 	sig_cats = medians['Category'].values
 
-	# don't forget to readd the categories that have no significant variants
+	# don't forget to re-add the categories that have no significant results
 	# calculate their median pvalues and add them to the dataframe
 	# sorting by the log pvalues so largest will still be at the right end of the plot
-	for cat in regressions['Category'].unique():
+	for cat in phewas_results['Category'].unique():
 		if cat not in medians['Category'].values:
-			cat_median = regressions.groupby('Category')['"-log(p)"'].mean()[cat]
-			medians = medians.append(pd.DataFrame({'Category': cat, '"-log(p)"': cat_median}, index = [0]))
+			cat_median = phewas_results.groupby('Category')["-log(p)"].mean()[cat]
+			medians = medians.append(pd.DataFrame({'Category': cat, "-log(p)": cat_median}, index = [0]))
 	
-	medians = medians.sort_values(by='"-log(p)"').reset_index(drop=True)
+	medians = medians.sort_values(by="-log(p)").reset_index(drop=True)
 
 	# based on the category ordering, sort the dataframe rows accordingly
 	sorter = lambda x: x.map({cat:order for order, cat in enumerate(medians['Category'])})
 	
-	if pheno == '':
-		print('All')
-	else:
-		print(pheno.capitalize())
-
+	print(pheno.capitalize())
 	print(medians)
 	print('\n')
 	
+	# get the indices of the significant categories
 	indices_of_significant_cats = [(cat, medians['Category'].tolist().index(cat)) for cat in sig_cats]
 
 	# if there are no significant categories, then don't plot anything
@@ -87,41 +69,41 @@ def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annot
 		print('No significant categories found')
 		return
 
-	# sort the categories by the med list
-	regressions = regressions.sort_values(by='Category', key = sorter)
+	# sort the categories by the median list so we can plot in the right order
+	phewas_results = phewas_results.sort_values(by='Category', key = sorter)
 
 	# get the list of categories, to map the colors to the categories
-	categories = regressions['Category'].unique()
+	categories = phewas_results['Category'].unique()
 	n_categories = len(categories)
 
 	color_map = {}
 	if n_categories > 1:
 		# List of RGB triplets
-		colors = sns.color_palette("rainbow", n_categories)
+		colors = sns.color_palette(pheno_color, n_categories)
 
 		# Map label to RGB
 		color_map = dict(zip(categories, colors))
 	else:
+		# otherwise there is only one category, so just use the color passed through the pheno_color argument
 		color_map[pheno] = pheno_color
 
-
 	if plt_top_cat:
-		plot_significant_categories(indices_of_significant_cats, pheno, output_file, title, regressions, sig, annotated_regressions, N, compare_orig_betas, transparency, color_map)
-	if regressions.empty:
-		print('No significant variants found for this phenotype')
+		plot_significant_categories(indices_of_significant_cats, output_file, title, phewas_results, sig, annotate, N, compare_orig_betas, transparency, color_map)
+	
+	if phewas_results.empty:
+		print('No significant results found for this phenotype')
 		return
-
-	# rename the columns to be more readable
-	regressions.rename(columns={'"-log(p)"': '-log(p)'}, inplace=True)
 	
 	# get ready to plot
 	plt.figure(figsize=(15, 8), dpi=500)
 
 	# data for plotting
-	significant_vars = regressions.loc[regressions['-log(p)'] >= sig]
-	non_significant_vars = regressions.loc[regressions['-log(p)'] < sig]
-	significant_original_pos_dir = significant_vars.loc[significant_vars['beta'] >= 0].copy()
-	significant_original_neg_dir = significant_vars.loc[significant_vars['beta'] < 0].copy()
+	significant_results = phewas_results.loc[phewas_results["-log(p)"] >= sig]
+	non_significant_results = phewas_results.loc[phewas_results["-log(p)"] < sig]
+
+	# get the significant results which have beta values that are positive or negative (to plot them differently)
+	significant_phewas_pos_beta = significant_results.loc[significant_results['beta'] >= 0].copy()
+	significant_phewas_neg_beta = significant_results.loc[significant_results['beta'] < 0].copy()
 
 	# the index for the collection for each category is simply the position of the category in the list of categories
 	# when you use sns.stripplot with order = something, it will plot for all the categories, creating empty collections
@@ -136,50 +118,53 @@ def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annot
 	handles = []
 
 	# if we are plotting 1 category, we have bigger points + different colors
-	size = 7
-	color = pheno_color
-
+	if n_categories == 1:
+		size = 7
+		color = pheno_color
 	# if we plotting more than 1 category, save space with points and the colors of the points will be different
-	if n_categories > 1: 
+	elif n_categories > 1: 
 		size = 5
-		color = color
-
-	if not significant_original_pos_dir.empty:
+		color = 'black' # the color of the points will be determined by the category, but the legend will be black (can't have multiple colors in the legend for the same entry)
+	else:
+		raise ValueError('Number of categories must be greater than 0')
+	if not significant_phewas_pos_beta.empty:
 		if compare_orig_betas and n_categories == 1:
 			pos_dir_palette ={"+": "red", "-": "orange"}
-			significant_original_pos_dir.loc[:, 'original_beta_direction'] = significant_original_pos_dir.apply(lambda x: '+' if x['Original_beta'] >= 0 else '-', axis = 1)
-			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_pos_dir, hue="original_beta_direction", palette = pos_dir_palette, jitter=0.45, size = size, order = categories, linewidth=0.3, **{'marker': '^', 'alpha': transparency})
+			significant_phewas_pos_beta.loc[:, 'original_beta_direction'] = significant_phewas_pos_beta.apply(lambda x: '+' if x['Original_beta'] >= 0 else '-', axis = 1)
+			ax = sns.stripplot(x = 'Category', y = "-log(p)", data = significant_phewas_pos_beta, hue="original_beta_direction", palette = pos_dir_palette, jitter=0.45, size = size, order = categories, linewidth=0.3, **{'marker': '^', 'alpha': transparency})
 			handles.extend([Line2D([0], [0], color = 'red', marker = '^', linestyle='None',label = 'Pos/Pos', alpha = transparency),
 							Line2D([0], [0], color = 'orange', marker = '^', linestyle='None',label = 'Pos/Neg', alpha = transparency)])
 		else:
 			# Plot the -log(p) values against the category values, with the colors mapped to the categories, with up arrow == the direction of the beta value is positive
-			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_pos_dir, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'marker': '^', 'alpha': transparency})
+			ax = sns.stripplot(x = 'Category', y = "-log(p)", data = significant_phewas_pos_beta, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'marker': '^', 'alpha': transparency})
 			handles.append(Line2D([0], [0], color = color, marker = '^', linestyle='None',label = 'Positive beta', alpha = transparency))
 	
-	if not significant_original_neg_dir.empty:
+	if not significant_phewas_neg_beta.empty:
 		if compare_orig_betas and n_categories == 1:
 			neg_dir_palette ={"-": "blue", "+": "purple"}
-			significant_original_neg_dir.loc[:, 'original_beta_direction'] = significant_original_neg_dir.apply(lambda x: '+' if x['Original_beta'] >= 0 else '-', axis = 1)
-			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_neg_dir, hue="original_beta_direction", palette = neg_dir_palette, jitter=0.45, size = size, order = categories, linewidth=0.3, **{'marker': 'v', 'alpha': transparency})
+			significant_phewas_neg_beta.loc[:, 'original_beta_direction'] = significant_phewas_neg_beta.apply(lambda x: '+' if x['Original_beta'] >= 0 else '-', axis = 1)
+			ax = sns.stripplot(x = 'Category', y = "-log(p)", data = significant_phewas_neg_beta, hue="original_beta_direction", palette = neg_dir_palette, jitter=0.45, size = size, order = categories, linewidth=0.3, **{'marker': 'v', 'alpha': transparency})
 			handles.extend([Line2D([0], [0], color = 'blue', marker = 'v', linestyle='None',label = 'Neg/Neg', alpha = transparency),  
 							Line2D([0], [0], color = 'purple', marker = 'v', linestyle='None', label = 'Neg/Pos', alpha = transparency)])
 		else:
 			# Plot the -log(p) values against the category values, with the colors mapped to the categories, with down arrow == the direction of the beta value is negative
-			ax = sns.stripplot(x = 'Category', y = '-log(p)', data = significant_original_neg_dir, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'marker': 'v', 'alpha': transparency})
+			ax = sns.stripplot(x = 'Category', y = "-log(p)", data = significant_phewas_neg_beta, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'marker': 'v', 'alpha': transparency})
 			handles.append(Line2D([0], [0], color = color, marker = 'v', linestyle='None', label = 'Negative beta', alpha = transparency))
 
 	# if we need to add annotations to the plot
-	if annotated_regressions is not None:
+	if annotate is not None:
 		
-		# if we are plotting more than 1 category, only annotate top 2 points
-		annotate_top = 2
-
+		
+		if n_categories > 1: # if we are plotting more than 1 category, only annotate top 2 points
+			annotate_top = 2
 		# else, annotate the top N points
-		if n_categories == 1:
+		elif n_categories == 1:
 			annotate_top = N
+		else:
+			raise ValueError("n_categories must be greater than 0")
 
 		# get top N variants for each category
-		top_N = significant_vars.groupby('Category').apply(lambda x : x.sort_values(by = '-log(p)', ascending = False).head(annotate_top).reset_index(drop = True))
+		top_N = significant_results.groupby('Category').apply(lambda x : x.sort_values(by = "-log(p)", ascending = False).head(annotate_top).reset_index(drop = True))
 		
 		collections = ax.collections
 
@@ -200,47 +185,52 @@ def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annot
 
 			collections_for_cat = np.concatenate(collections_for_cat)
 
-			# only annotate top variants for each category (to avoid cluttering the plot, use only 2 for the big plots)
+			# only annotate top results for each category (to avoid cluttering the plot, use only 2 for the big plots)
 			top_xy_coords = sorted(collections_for_cat, key = lambda x: x[1], reverse = True)
-
-			# # I DONT THINK WE NEED THIS BECAUSE OF HOW I CHANGED THE CODE -- CHECK IF WE CAN REMOVE
-			# # choose all the points that are significant for this category
-			# top_xy_coords = [(x,y) for x,y in top_xy_coords if y >= sig]
 
 			# if we want to annotate less points than those that exist, only choose the top X points
 			if annotate_top < len(top_xy_coords):
 				top_xy_coords = top_xy_coords[:annotate_top]
 
 			index = 0
+
+			# for each of the top points for this category, annotate the plot
 			top = top_N.loc[top_N['Category'] == cat]
 			for xy_coords in top_xy_coords:
 				x,y = xy_coords
 				
-				# get rsID from the top variants dataframe
-				rsID = top.iloc[index]['Independent_Var'].split('_')[0]
+				# get the independent variable from the top dataframe (either variants or phenotypes as independent variables)
+				independent_variable_name = top.iloc[index]['Independent_Var'].split('_')[0]
 
-				# only annotate first 3 genes, the rest can be found in the results file (for clarity)
-				genes = ', '.join(annotated_regressions.loc[annotated_regressions['rsID'] == rsID, 'GENE'].unique().tolist()[:3])
-				genes = textwrap.fill(genes, 25, break_long_words=False)
+				annotation = ''
 
-				# if we have more than 1 category, don't add the description to the plot
+				# if we are annotating phenotypes or if we don't have SNP-Gene mapping
+				if annotate == 'phenotype' or (annotate == 'genotype' and 'Gene' not in top.columns):
+					# we simply annotate the independent variable name
+					annotation = independent_variable_name.strip()
+
+				elif annotate == 'genotype' and 'Gene' in top.columns:
+					# only annotate first 3 genes, the rest can be found in the results file (for clarity)
+					genes = ', '.join(top.loc[top['Independent_Var'] == independent_variable_name, 'GENE'].unique().tolist()[:3])
+					genes = textwrap.fill(genes, 25, break_long_words=False)
+
+					annotation = (independent_variable_name + ', ' + genes).strip()
+
+				# if we have more than 1 category, don't add the description to the plot and make the font smaller
 				if n_categories > 1:
-					annotation = (rsID + ', ' + genes).strip()
-
 					texts.append(ax.text(x, y, annotation, ha = 'center', va = 'center', fontsize = 3))
-
 				else:
 					desc = top.iloc[index]['Description']
 					desc = textwrap.fill(desc, 35, break_long_words=False)
-					annotation = (rsID + ',' + genes + '\n' + desc ).strip()
+					annotation = (annotation + '\n' + desc ).strip()
 					
 					texts.append(ax.text(x, y, annotation, fontsize = 6, ha = 'center', va = 'center'))
 
 				index +=1
 	
-	if not non_significant_vars.empty:
+	if not non_significant_results.empty:
 		# plot for the values below the significance level (should be circles)
-		ax = sns.stripplot(x = 'Category', y = '-log(p)', data = non_significant_vars, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'alpha': transparency})
+		ax = sns.stripplot(x = 'Category', y = "-log(p)", data = non_significant_results, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'alpha': transparency})
 
 	# add the legends (we do it here to avoid adding more collections to ax.collections - simplifies logic)
 	if len(handles) > 0:
@@ -266,32 +256,41 @@ def manhattan_plot(regressions, sig, low, high, title, output_file, pheno, annot
 
 	ax.set_ylim([None, ax.get_ylim()[1]*1.15])
 
-	if annotated_regressions is not None:
+	if annotate is not None:
 		adjust_text(texts, arrowprops=dict(arrowstyle="->", color='black', lw=0.2))
-
 	else:
-		output_file = output_file.split('.')[0] + '_no_annotations.png'
+		# get the extension from the output file (the last .) using rsplit
+		output_file_split = output_file.rsplit('.', 1)
+		ext = '.' + output_file_split[-1]
+		output_file = output_file_split[0] + '_no_annotations' + ext
 
 	# finally save the figure
 	plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
 	plt.close()
 
-def category_enrichment_plot(regressions, sig,title, output_file):
+def category_enrichment_plot(phewas_results, sig,title, output_file):
 	
 	print('Plotting bar plot for %s' % output_file)
-	regressions['Significant'] = regressions['"-log(p)"'] >= sig
+
+	# annotate each row with whether it is significant or not
+	phewas_results['Significant'] = np.where(phewas_results["-log(p)"] >= sig, True, False)
 	_, ax = plt.subplots(figsize = (12, 8))
 
 	total_vars = {}
-	significant_vars = {}
+	significant_results = {}
 
-	for cat in regressions['Category'].unique():
-		total_vars[cat] = regressions[regressions['Category'] == cat].shape[0]
-		significant_vars[cat] = regressions.loc[regressions['Category'] == cat, 'Significant'].sum()
+	# for each category get the total number of variants and the number of significant variants
+	for cat in phewas_results['Category'].unique():
+		total_vars[cat] = phewas_results[phewas_results['Category'] == cat].shape[0]
+		significant_results[cat] = phewas_results.loc[phewas_results['Category'] == cat, 'Significant'].sum()
 
-	categories = dict(sorted(significant_vars.items(), key=lambda item: item[1]/total_vars[item[0]])).keys()
-	significant = [100*significant_vars[cat]/total_vars[cat] for cat in categories]
+	# sort the categories by the ratio of significant variants to total variants
+	categories = dict(sorted(significant_results.items(), key=lambda item: item[1]/total_vars[item[0]])).keys()
+	
+	# get the percentages for each category (significant variants / total variants)
+	significant = [100*significant_results[cat]/total_vars[cat] for cat in categories]
 
+	# plot the results as a bar plot
 	p1 = ax.bar(categories, significant,  color='tab:blue', label = 'Significant associations')
 
 	plt.xlabel('Categories', labelpad=12)
@@ -301,6 +300,7 @@ def category_enrichment_plot(regressions, sig,title, output_file):
 
 	ax.yaxis.set_major_formatter(mtick.PercentFormatter())
 
+	# annotate each bar with the total number of variants
 	index = 0
 	categories = list(categories)
 	sig_max = np.max(significant)
@@ -319,220 +319,469 @@ def category_enrichment_plot(regressions, sig,title, output_file):
 			fontsize=10, color='black', bbox=dict(facecolor='none', edgecolor='red', boxstyle='round'))
 		index += 1
 	
+	# create a manual legend for these annotations
 	legend_elements = [Patch(facecolor='none', edgecolor='red',label='Total associations')]
 	
 	ax.legend(handles=legend_elements, loc='upper left')
-	# plt.yscale("log")
 	plt.tight_layout()
 	plt.title(title)
 	
 	plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
 	plt.close()
 
-# def volcano_plot(regressions, sig, title, output_file, save = True):
+def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_genes, annotate):
+
+	# make a volcano plot for each independent variable that was tested
+	ind_vars = phewas_results['Independent_Var'].unique()
+
+	output_file_split = output_file.rsplit('.', 1)
+	ext = '.' + output_file_split[-1]
+	output_base_name = output_file_split[0]
+
+	for ind_var in ind_vars:
+	
+		ind_var_i = phewas_results.loc[phewas_results['Independent_Var'] == ind_var]
+		
+		# for visualization purposes, in my examples, found to be the best, but can be changed based on the data
+		ind_var_i = ind_var_i.loc[(ind_var_i['beta'] < 10) & (ind_var_i['beta'] > -10)].reset_index()
+		
+		# plot the results
+		ind_var_i.plot.scatter(x = 'beta', y = "-log(p)", figsize=(15,8))
+		
+		# draw a line at the threshold
+		plt.axhline(sig, color = 'red')
+		
+		ind_title = title + ' : ' + ind_var
+
+		if annotate:
+			texts = []
+			
+			# get top N most significant results
+			ind_var_i = ind_var_i.sort_values(by = '-log(p)', ascending = False)
+
+			descriptions = ind_var_i['Description']
+
+			results_annotated = N
+			# annotate the top N most significant results with their description
+			for i, desc in enumerate(descriptions):
+				if ind_var_i.iloc[i]["-log(p)"] > sig:
+					
+					# check if either the x or y value is not a finite number
+					if ind_var_i.iloc[i]["-log(p)"] == np.inf or ind_var_i.iloc[i]["beta"] == np.inf:
+						continue
+					else:
+						texts.append(plt.text(ind_var_i.iloc[i]['beta'], ind_var_i.iloc[i]["-log(p)"], desc, fontsize = 9, ha = 'center', va = 'center'))
+						results_annotated -= 1
+
+						if results_annotated == 0:
+							break
+			
+			if phewas_type == 'genotype' and 'Gene' in ind_var_i.columns:
+				genes = ind_var_i['Gene'].unique()
+			
+				if pd.isnull(genes):
+					genes = ''
+				else:
+					if len(genes) > max_genes:
+						genes = ", ".join(genes[:max_genes])
+					genes = '(' + genes + ')'
+
+					ind_title = ind_title + ' ' + ", ".join(genes)
+			
+			adjust_text(texts, arrowprops=dict(arrowstyle="->", color='black', lw=0.2))
+
+		plt.title(ind_title)
+		plt.savefig(output_base_name + '_' + ind_var + ext, bbox_inches ='tight', dpi = 300)
+		plt.close()
+
+def createDirectory(directory, clear):
+	# if clear_old_files selected, delete the directory
+	if clear:
+		print("Clearing old files from the directory located at: " + directory)
+		shutil.rmtree(directory, ignore_errors=True)
+
+	# check to see if directory exists, creating it if not
+	if not os.path.exists(directory):
+		print("Creating directory at: " + directory)
+		os.mkdir(directory)
+
+def createPlotSpecificDirectories(main_directory, output_prefix, clear, plot_type, separate_plots):
+	
+	# remove backslash from end of directory if present
+	if main_directory[-1] == '/':
+		main_directory = main_directory[:-1]
+
+	# overall directory
+	plot_type_directory = main_directory + '/' + output_prefix + '_' + plot_type
+	createDirectory(plot_type_directory, clear)
+
+	# directory for each plot at the top level
+	plot_type_agg_directory = plot_type_directory + '/' + output_prefix + '_aggregated'
+	createDirectory(plot_type_agg_directory, clear)
+
+	# directory for each plot by category
+	if separate_plots:
+		plot_type_separate_directory = plot_type_directory + '/' + output_prefix + '_separate'
+		createDirectory(plot_type_separate_directory, clear)
+
+		return plot_type_agg_directory, plot_type_separate_directory
+	
+	return plot_type_agg_directory, None
 
 def main():
-	parser = argparse.ArgumentParser(description='Plot significant phenotype data on a Manhattan Plot.')
-	parser.add_argument('--input', help='Input file', required=True)
-	parser.add_argument('--output', help='Output png', required=True)
-	parser.add_argument('--phenotype_name', help='Phenotype name', required=True)
-	parser.add_argument('--aggregate_title', help='Title of the plot of the aggregated data', required=False, default = None, nargs='+')
-	parser.add_argument('--mapping', help='Mapping of old categories to new ones', required=False, default = None)
-	parser.add_argument('--lower_outlier', help='Lower outlier threshold', required=False, default = 0, type = float)
-	parser.add_argument('--upper_outlier', help='Upper outlier threshold', required=False, default = 0.995, type = float)
-	parser.add_argument('--seed', help = 'Set seed to make the adjustText library deterministic', required = False, default = 0, type = int)
-	parser.add_argument('--downstream', help = 'Number in KB to check for closest genes', required = False, default = 40, type = int)
-	parser.add_argument('--upstream', help = 'Number in KB to check for closest genes', required = False, default = 40, type = int)
-	parser.add_argument('--gene_file', help = 'File containing a list of genes use for finding closest genes', required = False, default = None)
-	parser.add_argument('--rsid_files', help = 'Files containing a list of rsIDs to use for finding closest genes', required = True, action = 'append')
-	parser.add_argument('--no_annotations', help = 'Don\'t add annotations', required = False, default = False, action = 'store_true')
-	parser.add_argument('--plot_top_categories', help = 'Plot the top categories as well', required = False, default = False, action = 'store_true')
-	parser.add_argument('--number_of_top_results', help = 'Number of top results to save', required = False, default = 10, type = int)
-	parser.add_argument('--plot_manhattan', help = 'Plot the manhattan plot', required = False, default = False, action = 'store_true')
-	parser.add_argument('--plot_bar', help = 'Plot the bar plot', required = False, default = False, action = 'store_true')
-	parser.add_argument('--clear_old_files', help = 'Clear old files', required = False, default = False, action = 'store_true')
-	parser.add_argument('--alpha', help = 'Significance threshold', required = False, default = 0.05, type = float)
-	parser.add_argument('--correction', help = 'Correction method', required = False, default = 'bonferroni', choices = ['bonferroni', 'sidak','fdr_bh', 'no_correction'])
-	parser.add_argument('--compare_original_betas', help = 'Compare original betas with corrected betas', required = False, default = False, action = 'store_true')
-	parser.add_argument('--transparency', help = 'Transparency of points', required = False, default = 0.75, type = float)
-	parser.add_argument('--color_map', help = 'Seaborn color map to use', required = False, default = 'rainbow', type = str)
+	parser = argparse.ArgumentParser(description='Visualize PheWAS results on a variety of plot types.')
 
+	# Required Arguments
+	parser.add_argument('--phewas_results', help = "Input PheWAS results file", required=True, type = str)
+	parser.add_argument('--directory_name', help = "Name of the directory to save the plots in", required=True, type = str)
+	parser.add_argument('--output_prefix', help = "Prefix for output files", required = True, type = str)
+	parser.add_argument('--output_extension', help = "Extension for output files", required = True, choices = [".png", ".jpg", ".jpeg"], type = str)
+	parser.add_argument('--category_name', help = "Category name that the independent variables are associated [either the variants or the phenotypes]", required=True, type = str)
+	parser.add_argument('--phewas_type', help = "Whether the PheWAS was run with genotypes or phenotypes as the independent variables", required = True, choices = ["genotype", "phenotype"], type = str)
+
+	# Optional Miscellaneous Arguments
+	parser.add_argument('--mapping', help = "File containing mapping of old categories to new ones (should be pandas DataFrame)", required=False, default = None, type = str)
+	parser.add_argument('--clear_old_files', help = "Clear old files", required = False, default = False, action = 'store_true')
+	parser.add_argument('--plot_phewas_categories_separately', help = "Plot PheWAS results for each category separately as well as in aggregate", required = False, default = False, action = 'store_true')
+
+	# Gene Annotation
+	parser.add_argument('--variant_files', help = "Files containing the list of variants (from the PheWAS) to use for SNP-to-Gene mapping", required = False, action = 'append')
+	parser.add_argument('--gene_file', help = "File containing the list of genes to use for SNP-to-Gene mapping", required = False, default = None)
+	parser.add_argument('--downstream', help = "Number in KB to check for closest genes", required = False, default = 10, type = int)
+	parser.add_argument('--upstream', help = "Number in KB to check for closest genes", required = False, default = 10, type = int)
+	parser.add_argument('--save_gene_annotation', help = "Save the gene annotation file", required = False, default = False, action = 'store_true')
+
+	# Controlling Plot Aesthetics
+	parser.add_argument('--lower_outlier', help = "Lower outlier threshold of points to remove (for improving how the plot looks)", required=False, default = 0, type = float)
+	parser.add_argument('--upper_outlier', help = "Upper outlier threshold of points to remove (for improving how the plot looks)", required=False, default = 0.995, type = float)
+	parser.add_argument('--seed', help = "Seed value to make the adjustText library (annotations) deterministic", required = False, default = None, type = int)
+	parser.add_argument('--annotate', help = "Add annotations to the manhattan or volcano plots", required = False, default = False, action = 'store_true')
+	parser.add_argument('--transparency', help = "Transparency of points", required = False, default = 0.75, type = float)
+	parser.add_argument('--color_map', help = "Seaborn color map to use", required = False, default = 'rainbow', type = str)
+
+	# Manhattan Plot Specific
+	parser.add_argument('--plot_manhattan', help = "Plot the manhattan plot", required = False, default = False, action = 'store_true')
+	parser.add_argument('--plot_top_data_field_categories', help = "Plot each data field category in the manhattan plot with significant results", required = False, default = False, action = 'store_true')
+	parser.add_argument('--annotate_top_N_manhattan', help = "Number of how many (max) significant results to annotate in each manhattan plot", required = False, default = 10, type = int)
+	parser.add_argument('--compare_original_betas', help = "Whether to annotate significant results with their original beta values and PheWAS beta values", required = False, default = False, action = 'store_true')
+	parser.add_argument('--manhattan_title', help = "Title of the top level manhattan plot of the data", required=False, default = None, nargs='+')
+
+	# Category Enrichment Plot Specific
+	parser.add_argument('--plot_category_enrichment', help = "Plot category enrichment bar plot", required = False, default = False, action = 'store_true')
+	parser.add_argument('--category_enrichment_title', help = "Title of the category enrichment plot", required=False, default = None, nargs='+')
+
+	# Volcano Plot Specific
+	parser.add_argument('--plot_volcano', help = "Plot the volcano plot", required = False, default = False, action = 'store_true')
+	parser.add_argument('--volcano_title', help = "Title of the volcano plot (will have the SNP-Gene mapping appended if annotations and gene file specified)", required=False, default = None, nargs='+')
+	parser.add_argument('--max_genes', help = "Maximum number of genes to include in the title for the volcano plot", required=False, default = 3, type = int)
+	parser.add_argument('--annotate_top_N_volcano', help = "Number of how many (max) significant results to annotate in each volcano plot", required = False, default = 5, type = int)
+
+	# Significance Level Information
+	parser.add_argument('--alpha', help = "Significance threshold", required = False, default = 0.05, type = float)
+	parser.add_argument('--correction', help = "Correction method", required = False, default = 'bonferroni', choices = ['bonferroni', 'sidak','fdr_bh', 'no_correction'], type = str)
+	
 	args = parser.parse_args()
-	input_file = args.input
-	output_file = args.output
-	phenotype_name = args.phenotype_name
-	aggregate_title = args.aggregate_title
+
+	# Required Arguments
+	phewas_results = args.phewas_results
+	directory_name = args.directory_name
+	output_prefix = args.output_prefix
+	output_extension = args.output_extension
+	category_name = args.category_name
+	phewas_type = args.phewas_type
+
+	# Optional Miscellaneous Arguments
 	mapping = args.mapping
+	clear_old_files = args.clear_old_files
+	plot_phewas_categories_separately = args.plot_phewas_categories_separately
+	
+	# Gene Annotation
+	variant_files = args.variant_files
+	gene_file = args.gene_file
+	downstream = args.downstream
+	upstream = args.upstream
+	save_gene_annotation = args.save_gene_annotation
+
+	# Controlling Plot Aesthetics
 	lower_outlier = args.lower_outlier
 	upper_outlier = args.upper_outlier
 	seed = args.seed
-	downstream = args.downstream
-	upstream = args.upstream
-	gene_file = args.gene_file
-	rsid_files = args.rsid_files
-	no_annotations = args.no_annotations
-	plt_top_cat = args.plot_top_categories
-	N = args.number_of_top_results
-	plt_manhattan = args.plot_manhattan
-	plt_bar = args.plot_bar
-	clear_old_files = args.clear_old_files
-	alpha = args.alpha
-	correction = args.correction
-	compare_original_betas = args.compare_original_betas
+	annotate = args.annotate
 	transparency = args.transparency
 	color_map = args.color_map
 
-	# set a seed to make results reproducible (for the adjustText library)
-	np.random.seed(seed)
+	# Manhattan Plot Specific
+	plot_manhattan = args.plot_manhattan
+	plot_top_data_field_categories = args.plot_top_data_field_categories
+	annotate_top_N_manhattan = args.annotate_top_N_manhattan
+	compare_original_betas = args.compare_original_betas
+	manhattan_title = args.manhattan_title
 
-	# Load data
-	regressions = pd.read_csv(input_file, sep='\t')
+	# Category Enrichment Plot Specific
+	plot_category_enrichment = args.plot_category_enrichment
+	category_enrichment_title = args.category_enrichment_title
 
-	# get the directory of the output file
-	output_dir = os.path.dirname(output_file)
-	new_output_dir = output_dir + '/All' 
-	output_file = new_output_dir + '/' + os.path.basename(output_file)
+	# Volcano Plot Specific
+	plot_volcano = args.plot_volcano
+	volcano_title = args.volcano_title
+	max_genes = args.max_genes
+	annotate_top_N_volcano = args.annotate_top_N_volcano
 
-	# make directory for the aggregated results 
-	if clear_old_files:
-		shutil.rmtree(new_output_dir, ignore_errors=True)
+	# Significance Level Information
+	alpha = args.alpha
+	correction = args.correction
+
+	# ---------------------------------------VERIFY ARGS--------------------------------------- #
 	
-	if not os.path.exists(new_output_dir):
-		os.mkdir(new_output_dir)
+	annotation_type = None
+	
+	if compare_original_betas and len(variant_files) == 0:
+		print("Error: You must specify the variant files to plot the original betas versus the PheWAS betas")
+		exit()
+	
+	if phewas_type == 'phenotype':
+		if len(variant_files) != 0:
+			print("Warning: You have specified variant files for annotation but have indicated that this is a Phenotype PheWAS. The variant files will be ignored.")
+			variant_files = []
 
-	if aggregate_title is None:
-		# if no title is provided, name the file based on the type of plot
-		if plt_manhattan:
-			aggregate_title = 'PheWAS Results for %s (ALL) Variants' % (phenotype_name.capitalize())
-			output_file = output_file.split('.')[0] + '_manhattan.png'
-		else:
-			aggregate_title = '%s (ALL) Variant Enrichment per Category' % (phenotype_name.capitalize())
-			output_file = output_file.split('.')[0] + '_bar.png'
-	else:
-		aggregate_title = ' '.join(aggregate_title)
+		if gene_file is not None:
+			print("Warning: You have specified a gene file for annotation but have indicated that this is a Phenotype PheWAS. The gene file will be ignored.")
+			gene_file = None
 
-	# make directory for each of the phenotypes
-	phenos = regressions['PheWAS_Category'].unique()
-	pheno_map = {}
-	output_ext = '.' + output_file.rsplit('.', 1)[-1]
+		if compare_original_betas is not False:
+			print("Warning: You have specified to compare the original betas to the PheWAS betas but have indicated that this is a Phenotype PheWAS. No comparison will occur.")
+			compare_original_betas = False
+		
+		if annotate:
+			annotation_type = 'phenotype'
+	
+	elif phewas_type == 'genotype':
+		if annotate:
+			annotation_type = 'genotype'
+	
 
-	for p in phenos:
-		new_output_dir_for_pheno = output_dir + '/' + p
+	# ----------------------------------------------------------------------------------------- #
 
-		if clear_old_files:
-			shutil.rmtree(new_output_dir_for_pheno, ignore_errors=True)
+	# -------------------------------------SETUP DATA CODE------------------------------------- #
+	if seed is not None:
+		# set a seed to make results reproducible (for the adjustText library)
+		np.random.seed(seed)
 
-		if not os.path.exists(new_output_dir_for_pheno):
-			os.mkdir(new_output_dir_for_pheno)
+	# load the data to be plotted
+	phewas_results = pd.read_csv(phewas_results, sep = '\t')
 
-		title_and_output = ''
-		if plt_manhattan:
-			title_and_output = ('PheWAS Results for %s Variants' % (p.capitalize()), new_output_dir_for_pheno + '/'  + p.lower() + '_manhattan' + output_ext)
-		else:
-			title_and_output = ('%s Variant Enrichment per Category' % (p.capitalize()), new_output_dir_for_pheno + '/' + p.lower() + '_bar' + output_ext)
-
-		pheno_map[p] = title_and_output
-
+	# if there is a user specified mapping, then use it
 	if mapping is not None:
 		# load mapping file - two column file, first with old categories, second with new categories
 		mapping = dict(pd.read_csv(mapping, sep='\t').values)
 
 		# map old categories to new ones
-		regressions['Category'] = regressions['Category'].map(mapping)
-
-	# create a aggregate dataframe of all the snps
-	rsid_df = pd.DataFrame()
-
-	for f in rsid_files:
-		# read f and then concat to rsid_df
-		rsid_df = pd.concat([rsid_df, pd.read_csv(f, sep = '\t')])
-		rsid_df = rsid_df.drop_duplicates()
-	
-	# rename Independent_Var to rsID
-	regressions = regressions.rename(columns = {'Independent_Var': 'rsID'})
-
-	# case where we have a variant like 3:100928901_CTT_C
-	rsid_df['rsID'] = rsid_df['rsID'].apply(lambda x: x.split('_')[0])
-	regressions['rsID'] = regressions['rsID'].apply(lambda x: x.split('_')[0])
-
-	regressions['Original_beta'] = regressions.apply(lambda x: rsid_df.loc[rsid_df['rsID'] == x['rsID']]['BETA'].unique()[0], axis = 1)
-	regressions['Original_pval'] = regressions.apply(lambda x: rsid_df.loc[rsid_df['rsID'] == x['rsID']]['P'].unique()[0], axis = 1)
-	regressions['Direction'] = np.where(regressions['beta'] * regressions['Original_beta'] > 0, 'S', 'D')
-	
-	annotated_regressions = None
-	if not no_annotations and 'Gene' not in regressions.columns:
-		if gene_file is not None:
-			regressions, annotated_regressions = annotate_genes(gene_file = gene_file, 
-											rsid_df = rsid_df, 
-											down = downstream, 
-											up = upstream, 
-											regressions = regressions, 
-											output_dir = output_dir, 
-											pheno_name = phenotype_name)
-			# rename Independent_Var to rsID
-			regressions = regressions.rename(columns = {'rsID': 'Independent_Var'})
-		else:
-			print('No gene file provided.')
-			exit()
-
-	if no_annotations:
-		annotated_regressions = None	
+		phewas_results['Category'] = phewas_results['Category'].map(mapping)
 
 	# correct the pvalues using the method of choice
 	print('Correcting pvalues using %s correction' % (correction))
-	sig = -np.log10(multiple_testing_correction(pvalues = regressions['p-val'].dropna(), alpha = alpha, method = correction))
+	try:
+		significance_level = -np.log10(multiple_testing_correction(pvalues = phewas_results['p-val'].dropna(), alpha = alpha, method = correction))
+	except:
+		print("Error: %s correction failed due to taking the log of a negative number or zero. Try using a different correction method." % (correction))
+		exit()
 
-	if plt_manhattan:
-		manhattan_plot(regressions  = regressions, 
-						sig = sig, 
+	# ----------------------------------------------------------------------------------------- #
+
+	# ----------------------------------GENOTYPE BASED PHEWAS---------------------------------- #
+
+	# if the user wants to annotate and has specified variant files, then load them
+	if len(variant_files) != 0:
+
+		phewas_results = phewas_results.rename(columns = {'Independent_Var': 'rsID'})
+
+		variant_file_list = []
+
+		# load each variant file and append to a list
+		for variant_file in variant_files:
+			variant_file_list.append(pd.read_csv(variant_file, sep = '\t'))
+		
+		# concatenate all the variant files into one dataframe, drop duplicates, and reset the index
+		variant_data = pd.concat(variant_file_list, axis = 0).drop_duplicates().reset_index(drop = True)
+
+		# before moving on, fix the rsID column by removing the allele information if it exists
+		variant_data['rsID'] = variant_data['rsID'].apply(lambda x: x.split('_')[0])
+		phewas_results['rsID'] = phewas_results['rsID'].apply(lambda x: x.split('_')[0])
+
+		# for each row in our phewas results, add a column for the variant specified in the row with the value of the original beta & original p-value from the variant files
+		phewas_results['Original_beta'] = phewas_results.apply(lambda x: variant_data.loc[variant_data['rsID'] == x['rsID']]['BETA'].unique()[0], axis = 1)
+		phewas_results['Original_pval'] = phewas_results.apply(lambda x: variant_data.loc[variant_data['rsID'] == x['rsID']]['P'].unique()[0], axis = 1)
+
+		# for each row in our phewas results, add a column specifying whether the direction of the original beta is the same as the direction of the phewas beta
+		phewas_results['Direction'] = np.where(phewas_results['beta'] * phewas_results['Original_beta'] > 0, 'S', 'D')
+	
+		if gene_file is not None:
+			phewas_results, _ = annotate_genes(gene_file = gene_file, 
+												rsid_df = variant_data, 
+												down = downstream, 
+												up = upstream, 
+												regressions = phewas_results, 
+												output_dir = directory_name, 
+												pheno_name = output_prefix,
+												save = save_gene_annotation)
+		phewas_results = phewas_results.rename(columns = {'rsID': 'Independent_Var'})
+
+	# ----------------------------------------------------------------------------------------- #
+
+	# ---------------------------------------CREATE DIRS--------------------------------------- #
+
+	# create original directory if it doesn't exist
+	if not os.path.exists(directory_name):
+		print("Creating directory at: " + directory_name)
+		os.mkdir(directory_name)
+
+	# for each plot type, create a directory for it, the aggregated plots, and the separate plots if present, deleting each if they already exist
+	if plot_manhattan:
+		manhattan_agg_dir, manhattan_sep_dir = createPlotSpecificDirectories(main_directory = directory_name, 
+																			output_prefix = output_prefix,
+																			clear = clear_old_files, 
+																			plot_type = 'manhattan', 
+																			separate_plots = plot_phewas_categories_separately)
+	if plot_category_enrichment:
+		category_enrichment_agg_dir, category_enrichment_sep_dir = createPlotSpecificDirectories(main_directory = directory_name,
+																								output_prefix = output_prefix,
+																								clear = clear_old_files,
+																								plot_type = 'category_enrichment',
+																								separate_plots = plot_phewas_categories_separately)
+	if plot_volcano:
+		volcano_agg_dir, volcano_sep_dir = createPlotSpecificDirectories(main_directory = directory_name,
+																		output_prefix = output_prefix,
+																		clear = clear_old_files,
+																		plot_type = 'volcano',
+																		separate_plots = plot_phewas_categories_separately)
+	
+	MANHATTAN = 0
+	CATEGORY_ENRICHMENT = 1
+	VOLCANO = 2
+
+	FILE = 0
+	TITLE = 1
+
+	if plot_phewas_categories_separately:
+		phewas_categories = phewas_results['PheWAS_Category'].unique()
+
+		phewas_categories_map = {}
+
+		for category in phewas_categories:
+
+			phewas_categories_map[category] = [(None, None), (None, None), (None, None)]
+
+			if plot_manhattan:
+				category_directory = manhattan_sep_dir + '/' + category
+				createDirectory(category_directory, clear_old_files)
+				
+				out_file = category_directory + '/' + output_prefix + '_' + category.lower() + output_extension
+				out_title = 'PheWAS Separated Manhattan Plot (%s)' % (category.capitalize())
+				phewas_categories_map[category][MANHATTAN] = (out_file, out_title)
+			
+			if plot_category_enrichment:
+				category_directory = category_enrichment_sep_dir + '/' + category
+				createDirectory(category_directory, clear_old_files)
+				
+				out_file = category_directory + '/' + output_prefix + '_' + category.lower() + output_extension
+				out_title = 'PheWAS Separated Category Enrichment Plot (%s)' % (category.capitalize())
+				phewas_categories_map[category][CATEGORY_ENRICHMENT] = (out_file, out_title)
+			
+			if plot_volcano:
+				category_directory = volcano_sep_dir + '/' + category
+				createDirectory(category_directory, clear_old_files)
+
+				out_file = category_directory + '/' + output_prefix + '_' + category.lower() + output_extension
+				out_title = 'PheWAS Separated Volcano Plot (%s)' % (category.capitalize())
+				phewas_categories_map[category][VOLCANO] = (out_file, out_title)
+
+
+	# ----------------------------------------------------------------------------------------- #
+	
+	# ---------------------------------------PLOT RESULTS-------------------------------------- #
+
+
+	if plot_manhattan:
+
+		manhattan_title = ' '.join(manhattan_title) if manhattan_title is not None else 'PheWAS Aggregate Manhattan Plot (Aggregate)'
+
+		manhattan_plot(phewas_results  = phewas_results, 
+						sig = significance_level, 
 						low = lower_outlier,
 						high = upper_outlier,
-						title = aggregate_title,
-						output_file = output_file,
-						pheno = '',
-						annotated_regressions = annotated_regressions, 
-						plt_top_cat = plt_top_cat, 
-						N = N, 
+						title = manhattan_title,
+						output_file = manhattan_agg_dir + '/' + output_prefix + output_extension,
+						pheno = 'Aggregate',
+						annotate = annotation_type,
+						plt_top_cat = plot_top_data_field_categories, 
+						N = annotate_top_N_manhattan, 
 						compare_orig_betas = compare_original_betas, 
 						transparency = transparency,
 						pheno_color = color_map)
 
-	if plt_bar:
-		outlier_removed = regressions.copy(deep = True)
-		category_enrichment_plot(regressions = outlier_removed, 
-								sig = sig, 
-								title = aggregate_title, 
-								output_file = output_file)
+	if plot_category_enrichment:
+
+		category_enrichment_title = ' '.join(category_enrichment_title) if category_enrichment_title is not None else 'PheWAS Aggregate Category Enrichment Plot (Aggregate)'
+
+		outlier_removed = phewas_results.copy(deep = True)
+		category_enrichment_plot(phewas_results = outlier_removed, 
+								sig = significance_level, 
+								title = category_enrichment_title, 
+								output_file = category_enrichment_agg_dir + '/' + output_prefix + output_extension)
 
 
-	if len(phenos) > 1:
-		for pheno, (pheno_title, pheno_output_file) in pheno_map.items():
+	if plot_volcano:
+
+		volcano_title = ' '.join(volcano_title) if volcano_title is not None else 'PheWAS Volcano Plot (Aggregate)'
+
+		volcano_plot(phewas_results = phewas_results,
+						sig = significance_level,
+						title = volcano_title,
+						output_file = volcano_agg_dir + '/' + output_prefix + output_extension,
+						phewas_type = phewas_type,
+						N = annotate_top_N_volcano,
+						max_genes = max_genes,
+						annotate = annotate)
+						
+	if plot_phewas_categories_separately:
+		for category, plot_info in phewas_categories_map.items():
 
 			# plot the data for each phenotype
-			predictor_specific = regressions[regressions['PheWAS_Category'] == pheno].copy(deep = True)
+			predictor_specific = phewas_results[phewas_results['PheWAS_Category'] == category].copy(deep = True)
 
-			if plt_manhattan:
-				print('Plotting %s Manhattan plot' % (pheno))
-				manhattan_plot(regressions  = predictor_specific, 
-								sig = sig, 
+			if plot_manhattan:
+				print('Plotting %s Manhattan plot' % (category))
+				manhattan_plot(phewas_results  = predictor_specific, 
+								sig = significance_level, 
 								low = lower_outlier,
 								high = upper_outlier,
-								title = pheno_title,
-								output_file = pheno_output_file,
-								pheno = pheno,
-								annotated_regressions = annotated_regressions, 
-								plt_top_cat = plt_top_cat, 
-								N = N, 
+								title = plot_info[MANHATTAN][TITLE],
+								output_file = plot_info[MANHATTAN][FILE],
+								pheno = category,
+								annotate = annotation_type,
+								plt_top_cat = plot_top_data_field_categories, 
+								N = annotate_top_N_manhattan, 
 								compare_orig_betas = compare_original_betas, 
 								transparency = transparency,
 								pheno_color = color_map)
 
-			if plt_bar:
-				print('Plotting %s bar plot' % (pheno))
-				category_enrichment_plot(regressions = predictor_specific, 
-								sig = sig, 
-								title = pheno_title, 
-								output_file = pheno_output_file)
+			if plot_category_enrichment:
+				print('Plotting %s bar plot' % (category))
+				category_enrichment_plot(phewas_results = predictor_specific, 
+								sig = significance_level, 
+								title = plot_info[CATEGORY_ENRICHMENT][TITLE], 
+								output_file = plot_info[CATEGORY_ENRICHMENT][FILE])
+
+			if plot_volcano:
+				print('Plotting %s volcano plot' % (category))
+				volcano_plot(phewas_results = predictor_specific, 
+							sig = significance_level,
+							title = plot_info[VOLCANO][TITLE], 
+							output_file = plot_info[VOLCANO][FILE],
+							phewas_type = phewas_type,
+							N = annotate_top_N_volcano,
+							max_genes = max_genes,
+							annotate = annotate)
 
 
 if __name__ == '__main__':
