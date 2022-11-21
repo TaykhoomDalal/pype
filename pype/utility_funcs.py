@@ -125,7 +125,7 @@ def get_closest_genes(rsIDs, genes, upstream, downstream):
 	# get the rows that are within the upstream and downstream regions
 	return merge.loc[(merge.POS >= merge.START - downstream*1000) & (merge.POS <= merge.END + upstream*1000)] 
 
-def annotate_genes(gene_file, rsid_df, down, up, regressions, output_dir, pheno_name):
+def annotate_genes(gene_file, rsid_df, down, up, regressions, output_dir, pheno_name, save = True):
 
 	rsid_df['CHR'] = rsid_df['CHR'].astype(str)
 	
@@ -140,7 +140,7 @@ def annotate_genes(gene_file, rsid_df, down, up, regressions, output_dir, pheno_
 	gene_df = gene_df[gene_df['#chrom'].isin(chroms)]
 
 	print('Annotating variants with nearby genes...')
-	# get closest genes to eaach variant
+	# get closest genes to each variant
 	res = get_closest_genes(rsid_df, gene_df, down, up).sort_values(by = 'rsID')
 
 	print('Annotating variants with nearby genes...done')
@@ -151,6 +151,9 @@ def annotate_genes(gene_file, rsid_df, down, up, regressions, output_dir, pheno_
 		gene_map[row['rsID']].append(row['GENE'])
 
 	regressions['Gene'] = regressions.apply(lambda x: ', '.join(gene_map[x['rsID']]), axis = 1)
-	regressions.to_csv(output_dir + '/' + pheno_name + '_pheWAS_results_with_nearby_genes.tab', sep = '\t', index = False)
+	
+	if save:
+		regressions.to_csv(output_dir + '/' + pheno_name + '_pheWAS_results_with_nearby_genes.tab', sep = '\t', index = False)
+		res.to_csv(output_dir + '/' + pheno_name + '_rsID_gene_map.tab', sep = '\t', index = False)
 
 	return regressions, res
