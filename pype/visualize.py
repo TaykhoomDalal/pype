@@ -211,7 +211,7 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 
 				elif annotate == 'genotype' and 'Gene' in top.columns:
 					# only annotate first 3 genes, the rest can be found in the results file (for clarity)
-					genes = ', '.join(top.loc[top['Independent_Var'] == independent_variable_name, 'GENE'].unique().tolist()[:3])
+					genes = ', '.join(top.loc[top['Independent_Var'] == independent_variable_name, 'Gene'].unique().tolist()[:3])
 					genes = textwrap.fill(genes, 25, break_long_words=False)
 
 					annotation = (independent_variable_name + ', ' + genes).strip()
@@ -243,7 +243,6 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	labels = [ textwrap.fill(l, 12, break_long_words=False) for l in categories ]
 	ax.set_xticks(ax.get_xticks().tolist())
 	ax.set_xticklabels(labels)
-
 
 	if n_categories > 5:
 		# and rotate/shrink the labels
