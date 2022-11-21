@@ -328,7 +328,7 @@ def category_enrichment_plot(phewas_results, sig,title, output_file):
 	plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
 	plt.close()
 
-def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_genes, annotate):
+def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_genes, annotate, transparency, compare_orig_betas):
 
 	# make a volcano plot for each independent variable that was tested
 	ind_vars = phewas_results['Independent_Var'].unique()
@@ -343,10 +343,53 @@ def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_ge
 		
 		# for visualization purposes, in my examples, found to be the best, but can be changed based on the data
 		ind_var_i = ind_var_i.loc[(ind_var_i['beta'] < 10) & (ind_var_i['beta'] > -10)].reset_index()
+
+		# data for plotting
+		significant_results = ind_var_i.loc[ind_var_i["-log(p)"] >= sig]
+		non_significant_results = ind_var_i.loc[ind_var_i["-log(p)"] < sig]
+
+		# get the significant results which have beta values that are positive or negative (to plot them differently)
+		significant_phewas_pos_beta = significant_results.loc[significant_results['beta'] >= 0].copy()
+		significant_phewas_neg_beta = significant_results.loc[significant_results['beta'] < 0].copy()
 		
+		# custom legend entries
+		handles = []
+
+		# get ready to plot
+		plt.figure(figsize=(15, 8), dpi=500)
+
 		# plot the results
-		ind_var_i.plot.scatter(x = 'beta', y = "-log(p)", figsize=(15,8))
+		if not significant_phewas_pos_beta.empty:
+			if compare_orig_betas: # if the arrow is pointing up, the PheWAS beta is positive, and if the color is red, the original beta was positive, else the original beta was negative
+				pos_dir_palette ={"+": "red", "-": "orange"}
+				significant_phewas_pos_beta.loc[:, 'original_beta_direction'] = significant_phewas_pos_beta.apply(lambda x: '+' if x['Original_beta'] >= 0 else '-', axis = 1)
+				ax = sns.scatterplot(x = 'beta', y = "-log(p)", data = significant_phewas_pos_beta, hue="original_beta_direction", palette = pos_dir_palette, linewidth=0.3, **{'marker': '^', 'alpha': transparency})
+				handles.extend([Line2D([0], [0], color = 'red', marker = '^', linestyle='None',label = 'Pos/Pos', alpha = transparency),
+								Line2D([0], [0], color = 'orange', marker = '^', linestyle='None',label = 'Pos/Neg', alpha = transparency)])
+			else:
+				# up arrow == the direction of the beta value is positive
+				ax = sns.scatterplot(x = 'beta', y = "-log(p)", data = significant_phewas_pos_beta, color = 'red', linewidth=0.2, **{'marker': '^', 'alpha': transparency})
+				handles.append(Line2D([0], [0], color = 'red', marker = '^', linestyle='None', label = 'Positive PheWAS beta', alpha = transparency))
 		
+		if not significant_phewas_neg_beta.empty:
+			if compare_orig_betas: # if the arrow is pointing down, the PheWAS beta is negative, and if the color is blue, the original beta was negative, else the original beta was positive
+				neg_dir_palette ={"-": "blue", "+": "purple"}
+				significant_phewas_neg_beta.loc[:, 'original_beta_direction'] = significant_phewas_neg_beta.apply(lambda x: '+' if x['Original_beta'] >= 0 else '-', axis = 1)
+				ax = sns.scatterplot(x = 'beta', y = "-log(p)", data = significant_phewas_neg_beta, hue="original_beta_direction", palette = neg_dir_palette, linewidth=0.3, **{'marker': 'v', 'alpha': transparency})
+				handles.extend([Line2D([0], [0], color = 'blue', marker = 'v', linestyle='None',label = 'Neg/Neg', alpha = transparency),  
+								Line2D([0], [0], color = 'purple', marker = 'v', linestyle='None', label = 'Neg/Pos', alpha = transparency)])
+			else:
+				# down arrow == the direction of the beta value is negative
+				ax = sns.scatterplot(x = 'beta', y = "-log(p)", data = significant_phewas_neg_beta, color = 'blue', linewidth=0.2, **{'marker': 'v', 'alpha': transparency})
+				handles.append(Line2D([0], [0], color = 'blue', marker = 'v', linestyle='None', label = 'Negative PheWAS beta', alpha = transparency))
+		if not non_significant_results.empty:
+			# plot for the values below the significance level (should be circles)
+			ax = sns.scatterplot(x = 'beta', y = "-log(p)", data = non_significant_results, color = 'black', linewidth=0.2, **{'alpha': transparency})
+		
+		# add the legends
+		if len(handles) > 0:
+			ax.legend(handles = handles, loc = 'best')
+
 		# draw a line at the threshold
 		plt.axhline(sig, color = 'red')
 		
@@ -442,6 +485,7 @@ def main():
 	parser.add_argument('--mapping', help = "File containing mapping of old categories to new ones (should be pandas DataFrame)", required=False, default = None, type = str)
 	parser.add_argument('--clear_old_files', help = "Clear old files", required = False, default = False, action = 'store_true')
 	parser.add_argument('--plot_phewas_categories_separately', help = "Plot PheWAS results for each category separately as well as in aggregate", required = False, default = False, action = 'store_true')
+	parser.add_argument('--compare_original_betas', help = "Whether to annotate significant results with their original beta values and PheWAS beta values", required = False, default = False, action = 'store_true')
 
 	# Gene Annotation
 	parser.add_argument('--variant_files', help = "Files containing the list of variants (from the PheWAS) to use for SNP-to-Gene mapping", required = False, action = 'append')
@@ -462,7 +506,6 @@ def main():
 	parser.add_argument('--plot_manhattan', help = "Plot the manhattan plot", required = False, default = False, action = 'store_true')
 	parser.add_argument('--plot_top_data_field_categories', help = "Plot each data field category in the manhattan plot with significant results", required = False, default = False, action = 'store_true')
 	parser.add_argument('--annotate_top_N_manhattan', help = "Number of how many (max) significant results to annotate in each manhattan plot", required = False, default = 10, type = int)
-	parser.add_argument('--compare_original_betas', help = "Whether to annotate significant results with their original beta values and PheWAS beta values", required = False, default = False, action = 'store_true')
 	parser.add_argument('--manhattan_title', help = "Title of the top level manhattan plot of the data", required=False, default = None, nargs='+')
 
 	# Category Enrichment Plot Specific
@@ -493,7 +536,8 @@ def main():
 	mapping = args.mapping
 	clear_old_files = args.clear_old_files
 	plot_phewas_categories_separately = args.plot_phewas_categories_separately
-	
+	compare_original_betas = args.compare_original_betas
+
 	# Gene Annotation
 	variant_files = args.variant_files
 	gene_file = args.gene_file
@@ -513,7 +557,6 @@ def main():
 	plot_manhattan = args.plot_manhattan
 	plot_top_data_field_categories = args.plot_top_data_field_categories
 	annotate_top_N_manhattan = args.annotate_top_N_manhattan
-	compare_original_betas = args.compare_original_betas
 	manhattan_title = args.manhattan_title
 
 	# Category Enrichment Plot Specific
@@ -740,7 +783,9 @@ def main():
 						phewas_type = phewas_type,
 						N = annotate_top_N_volcano,
 						max_genes = max_genes,
-						annotate = annotate)
+						annotate = annotate,
+						transparency = transparency,
+						compare_orig_betas = compare_original_betas)
 						
 	if plot_phewas_categories_separately:
 		for category, plot_info in phewas_categories_map.items():
@@ -780,7 +825,9 @@ def main():
 							phewas_type = phewas_type,
 							N = annotate_top_N_volcano,
 							max_genes = max_genes,
-							annotate = annotate)
+							annotate = annotate,
+							transparency = transparency,
+							compare_orig_betas = compare_original_betas)
 
 
 if __name__ == '__main__':
