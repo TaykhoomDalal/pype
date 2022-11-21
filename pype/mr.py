@@ -46,7 +46,7 @@ def run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out):
     
     if exp_beta_len < 2:
         print('Found {} variants. Need at least 2. Exiting MR.'.format(data[['BETA_EXP']].shape[0]))
-        return
+        return None
     
     f = 'BETA_OUT ~ -1 + BETA_EXP'
     
@@ -99,7 +99,7 @@ def run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out):
     
     if exp_beta_len < 3:
         print('Found {} variants. Need at least 3. Exiting MR.'.format(data[['BETA_EXP']].shape[0]))
-        return
+        return None
     
     change_0_to_1 = lambda x: np.sign(x.replace(0,1))
     
@@ -169,7 +169,7 @@ def run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, nb
     
     if exp_beta_len < 3:
         print('Found {} variants. Need at least 3. Exiting MR.'.format(data[['BETA_EXP']].shape[0]))
-        return
+        return None
     
     beta_iv = data['BETA_OUT'] / data['BETA_EXP']
     
@@ -265,4 +265,4 @@ def run_mr_median(harmonized_data, beta_exp, beta_out, se_exp, se_out):
     
     if exp_beta_len < 3:
         print('Found {} variants. Need at least 3. Exiting MR.'.format(data[['BETA_EXP']].shape[0]))
-        return
+        return None
