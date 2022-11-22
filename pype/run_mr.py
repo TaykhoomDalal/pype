@@ -14,10 +14,11 @@ def main():
 	parser.add_argument('--outcome_phenotype', help = 'Name of the phenotype that the outcome variants are associated with', required = False, default = None, type = str)
 	parser.add_argument('--traits', help = 'List of traits to search for in OpenGWAS to use for MR', required = False, type = str, action ='append', nargs = '+')
 	parser.add_argument('--output', help ='File to store output of MR', required = True, type = str)
-	parser.add_argument('--mr_type', help = 'MR test to run', choices = ['ivw', 'egger', 'simple-median'], required = True, type = str)
+	parser.add_argument('--mr_type', help = 'MR test to run', choices = ['ivw', 'egger', 'simple_median'], required = True, type = str, action='append')
 
 	# Optional Arguments for MR
 	parser.add_argument('--similarity_func', help = 'Similarity function to use for matching trait strings in OpenGWAS', choices = ['jaccard', 'levenshtein'], default = 'jaccard', required = False, type = str)
+	parser.add_argument('--all_studies_path', help = 'Path to file containing all studies in OpenGWAS', default = None, required = False, type = str)
 	parser.add_argument('--cache_all_studies', help = 'Cache all studies in OpenGWAS', required = False, action = 'store_true')
 	parser.add_argument('--batches', help = 'GWAS summary dataset batches from Open GWAS', choices=mr_utils.open_gwas_batches.keys(), required = False, type = str, nargs = '+')
 	parser.add_argument('--strip_names', help = 'If trying to match traits is not working well, try standardizing to strip all non alpha characters from the traits', required = False, action = 'store_true')
@@ -35,6 +36,7 @@ def main():
 
 	# Optional Arguments
 	similarity_func = args.similarity_func
+	all_studies_path = args.all_studies_path
 	cache_all_studies = args.cache_all_studies
 	batches = args.batches
 	strip_names = args.strip_names
@@ -65,10 +67,17 @@ def main():
 			print("Error: The exposure and outcome phenotypes cannot be the same")
 			exit()
 
+	if len(mr_type) == 0:
+		print("Error: You must provide at least one MR test to run")
+		exit()
+
 	# ----------------------------------------------------------------------------------------- #
 	
 	# --------------------------------------SETUP MR CODE-------------------------------------- #
 	
+	if all_studies_path is not None:
+		mr_utils.setAllStudiesPath(all_studies_path)
+
 	# if the user wants to re-cache all studies
 	if cache_all_studies:
 		mr_utils.cache_all_studies()
@@ -105,19 +114,19 @@ def main():
 						external_gwas_data_i = external_gwas_data.loc[external_gwas_data['phenotype'] == phenotype].copy()
 						data[phenotype] = mr_utils.harmonize(exposure_variants_i, external_gwas_data_i, '_' + exposure_pheno, '_' + phenotype)
 						
-						print('Running MR for Exposure ({}) against Outcome ({})'.format(exposure_pheno, phenotype))
+						print('Running MR ({}) for Exposure ({}) against Outcome ({})'.format(", ".join(mr_type), exposure_pheno, phenotype))
 						
 						mr_res = mr.run_mr(mr_type, data[phenotype], 'BETA_' + exposure_pheno, 'BETA_' + phenotype, 'SE_' + exposure_pheno, 'SE_' + phenotype)
-						
-						if mr_res is None:
-							print('MR failed for Exposure ({}) against Outcome ({})'.format(exposure_pheno, phenotype))
-							continue
 
-						pval, beta, std_err, *additional = mr_res
+						for mr_type_i, results in mr_res.items():
+							if results is None:
+								print('{} MR failed for Exposure ({}) against Outcome ({})'.format(mr_type_i.capitalize(), exposure_pheno, phenotype))
+							else:
+								pval, beta, std_err, *additional = results
 
-						temp_data.append([phenotype, pval, beta, std_err, data[phenotype].shape[0]])
+								temp_data.append([mr_type_i, phenotype, pval, beta, std_err, data[phenotype].shape[0]])
 			
-			mr_results = pd.DataFrame(temp_data, columns = ['Outcome', 'P_value', 'Effect_Size', 'Standard_Error', 'Number_SNPs'])
+			mr_results = pd.DataFrame(temp_data, columns = ['MR_Method', 'Outcome', 'P_value', 'Effect_Size', 'Standard_Error', 'Number_SNPs'])
 
 			# write the results to a file
 			mr_results.to_csv(output_base + '_' + exposure_pheno + '.' + output_ext, sep = '\t', index = False)
@@ -126,7 +135,7 @@ def main():
 		
 		for index, exposure_pheno in enumerate(exposure_phenotypes):
 			
-			print('Running MR for Exposure ({}) against Outcome ({})'.format(exposure_pheno, outcome_phenotype))
+			print('Running MR ({}) for Exposure ({}) against Outcome ({})'.format(", ".join(mr_type), exposure_pheno, outcome_phenotype))
 
 			# read in the exposure variants
 			exposure_variants_i = pd.read_csv(exposure_variants[index], sep = '\t')
@@ -140,14 +149,17 @@ def main():
 			# run MR
 			mr_res = mr.run_mr(mr_type, harmonized_data, 'BETA_' + exposure_pheno, 'BETA_' + outcome_phenotype, 'SE_' + exposure_pheno, 'SE_' + outcome_phenotype)
 
-			if mr_res is None:
-				print('MR failed for Exposure ({}) against Outcome ({})'.format(exposure_pheno, outcome_phenotype))
-				continue
+			temp_data = []
+			for mr_type_i, results in mr_res.items():
+				if results is None:
+					print('{} MR failed for Exposure ({}) against Outcome ({})'.format(mr_type_i.capitalize(), exposure_pheno, outcome_phenotype))
+				else:
+					pval, beta, std_err, *additional = results
 
-			pval, beta, std_err, *additional = mr_res
+					temp_data.append([mr_type_i, outcome_phenotype, pval, beta, std_err, harmonized_data.shape[0]])
 
 			# convert the results to a dataframe
-			mr_results = pd.DataFrame(data = [[outcome_phenotype, pval, beta, std_err, harmonized_data.shape[0]]], columns = ['Outcome', 'P_value', 'Effect_Size', 'Standard_Error', 'Number_SNPs'])
+			mr_results = pd.DataFrame(data = temp_data, columns = ['Outcome', 'P_value', 'Effect_Size', 'Standard_Error', 'Number_SNPs'])
 
 			# write the results to a file
 			mr_results.to_csv(output_base + '_' + exposure_pheno + '.' + output_ext, sep = '\t', index = False)

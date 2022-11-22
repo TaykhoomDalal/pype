@@ -3,13 +3,42 @@ from statsmodels.formula.api import wls
 from scipy.stats import norm, chi2, t
 
 def run_mr(mr_type, harmonized_data, beta_exp, beta_out, se_exp, se_out):
+    '''
+    Run MR using the specified methods. 
+
+    Parameters
+    ----------
+    mr_type : list
+        List of MR methods to run.
+    harmonized_data : pandas.DataFrame
+        Dataframe containing the harmonized data.
+    beta_exp : str
+        Name of the column containing the exposure effect sizes.
+    beta_out : str
+        Name of the column containing the outcome effect sizes.
+    se_exp : str
+        Name of the column containing the exposure standard errors.
+    se_out : str    
+        Name of the column containing the outcome standard errors.
     
-    if mr_type == 'ivw':
-        return run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-    elif mr_type == 'simple_median':
-        return run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-    elif mr_type == 'egger':
-        return run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+    Returns
+    -------
+    mr_results : dict
+        Dictionary containing the MR results.
+    
+    '''
+
+    mr_results = {}
+    
+    for method in mr_type:
+        if method == 'ivw':
+            mr_results[method] = run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+        elif method == 'simple_median':
+            mr_results[method] = run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+        elif method == 'egger':
+            mr_results[method] = run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+        
+    return mr_results
 
 def run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out):
     '''
@@ -171,7 +200,7 @@ def run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, nb
         print('Found {} variants. Need at least 3. Exiting MR.'.format(data[['BETA_EXP']].shape[0]))
         return None
     
-    beta_iv = data['BETA_OUT'] / data['BETA_EXP']
+    beta_iv = np.array(data['BETA_OUT'] / data['BETA_EXP'])
     
     inv_rep_len = np.repeat(1/exp_beta_len, exp_beta_len)
     
@@ -181,22 +210,14 @@ def run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, nb
     
     return [model_pvalue, beta, standard_error]
 
-def weighted_median(beta_inverse_weighted, weights):
+def weighted_median(beta_iv, weights):
     '''
     Calculate the weighted median of a list of numbers.
-
+    credit:
     '''
-    beta_iw_sorted = sorted(beta_inverse_weighted)
-    weights_sorted = sorted(weights)
-    
-    weights_sum = np.cumsum(weights_sorted) - 0.5 * np.array(weights_sorted)
-    weights_sum = weights_sum/np.sum(weights_sum)
-    
-    below_05 = np.max(np.where(weights_sum < 0.5))
-    
-    beta = beta_iw_sorted[below_05] + (beta_iw_sorted[below_05+1]-beta_iw_sorted[below_05])*(0.5-weights_sum[below_05])/(weights_sum[below_05+1]-weights_sum[below_05])
-    
-    return beta
+    i = np.argsort(beta_iv)
+    c = np.cumsum(weights[i])
+    return beta_iv[i[np.searchsorted(c, 0.5 * c[-1])]]
     
 def weighted_median_bootstrap(beta_exp, beta_out, se_exp, se_out, weights, nboot):
     '''
@@ -223,14 +244,17 @@ def weighted_median_bootstrap(beta_exp, beta_out, se_exp, se_out, weights, nboot
         Standard error of the weighted median.
 
     '''
-
-    medians = np.repeat(0, nboot)
+    # make list of size nboot filled with 0
+    medians = [0] * nboot
     
     for i in range(nboot):
-        b_exp_bstrapped = np.random.normal(beta_exp.shape[0], loc = beta_exp, scale = se_exp)
-        b_out_bstrapped = np.random.normal(beta_out.shape[0], loc = beta_out, scale = se_out)
-        beta_iv_bstrapped = b_out_bstrapped / b_exp_bstrapped
-        medians[i] = weighted_median(beta_iv_bstrapped, weights)
+        b_exp_bstrapped = np.random.normal(loc = beta_exp, scale = se_exp, size = beta_exp.shape[0])
+        b_out_bstrapped = np.random.normal(loc = beta_out, scale = se_out, size = beta_out.shape[0])
+        beta_iv_bstrapped = np.array(b_out_bstrapped) / np.array(b_exp_bstrapped)
+
+        # set output of weighted_median to medians[i]
+        medians[i] = weighted_median(np.array(beta_iv_bstrapped), np.array(weights))
+
     
     return np.std(medians)
     
