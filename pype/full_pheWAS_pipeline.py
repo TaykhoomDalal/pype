@@ -226,7 +226,9 @@ def make_out_of_sample_pheno_file(sample_2_independent_dict, pheno_file, data_fi
 		sample_file_data_list[file] = pd.read_csv(file, sep='\t', header=None).iloc[:,0].tolist()
 
 		if phenotype_phewas:
-			sample_2_phenos_dict[file] = extract_ukb_data_fields(col_names, independent_vars, data_fields_dir + '/' + output_prefix + '_ukb_pheno_fields.txt', True)
+			sample_2_phenos_dict[file] = extract_ukb_data_fields(col_names, independent_vars, data_fields_dir + '/' + output_prefix + '_ukb_independent_pheno_fields.txt', True)
+
+			sample_2_independent_dict[file] = (sample_2_phenos_dict[file], output_prefix)
 
 	# can't read entire .tab file at once, very slow, so read it in chunk by chunk
 	chunksize = 1000 # number or rows we see at a time
@@ -522,6 +524,9 @@ def run_phenotype_pheWAS(sample_2_independent_dict, pheno_dict, out_dir, data_fi
 		p.start()
 		pool.append(p)
 
+	# put a small sleep to allow the processes to start - hacky solution (need to find better solution to broken pipe error)
+	time.sleep(1)
+
 	for file, (_, output_prefix) in sample_2_independent_dict.items():
 
 		cov_headers = []
@@ -623,8 +628,8 @@ def save_top_variants(out_dir, field_dict, correction, alpha, gene_file = None, 
 			# second split gets us: 'Group', ''
 			group = file.split('_Ethnicity_')[1].split('_results.tsv')[0]
 
-		# get age predictor prefix from file name # I.E. Pancreas_chr10_v3_bfile_Ethnicity_Asian_results.tsv --> Pancreas
-		age_predictor_prefix = file.split('_')[0].split('Age')[0]
+		# get output prefix from file name # I.E. X_chr10_v3_bfile_Ethnicity_Asian_results.tsv --> X
+		outptu_prefix = file.split('_')[0].split('Age')[0]
 
 		for field in data_fields:
 			# split the field at the period twice, once to get ['f', 'X.X.X'], and 
@@ -637,7 +642,7 @@ def save_top_variants(out_dir, field_dict, correction, alpha, gene_file = None, 
 
 			# Add the description, predictor, ethnicity to the dataframe
 			df.loc[df['Data_Field'] == field, 'Description'] = description
-			df.loc[df['Data_Field'] == field, 'PheWAS_Category'] = age_predictor_prefix
+			df.loc[df['Data_Field'] == field, 'PheWAS_Category'] = outptu_prefix
 			df.loc[df['Data_Field'] == field, 'Category'] = category
 
 			if 'Ethnicity' in file:
@@ -709,7 +714,7 @@ def main():
 	parser.add_argument('--correction', help = 'Correction method to use', required = False, default = 'bonferroni', choices = ['bonferroni', 'sidak', 'fdr_bh', 'no_correction'])
 	parser.add_argument('--covariates_file', help='File of covariate data fields', required=False, default = None, type = str)
 	parser.add_argument('--ethnicity_groups', help = 'Ethnicity groups to use for pheWAS', required = False, default = ['Ethnicity.White'], choices = ['Ethnicity.White', 'Ethnicity.Asian', 'Ethnicity.Black', 'Ethnicity.Other'],  nargs = '+')
-	parser.add_argument('--output_prefix', help = 'Prefix for output files (specify one for each sample file)', required = True, action = 'append')
+	parser.add_argument('--output_prefix', help = 'Prefix for output files (specify one for each sample file) (DO NOT PUT UNDERSCORES IN THIS)', required = True, action = 'append')
 
 	# Data logging / location arguments
 	parser.add_argument('--directory_name', help='Directory to store intermediate files', required=True, type = str)
@@ -805,7 +810,7 @@ def main():
 			exit()
 	elif phenotypes_lists and not variant_files and not phenotypes_files:
 		phenotype_phewas = True
-	
+
 		if len(phenotypes_lists) != len(sample_files):
 			print('Error: You must specify the same number of phenotype lists and sample files.')
 			exit()
