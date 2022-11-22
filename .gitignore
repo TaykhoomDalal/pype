@@ -1,2 +1,2 @@
-*.sh
+pype/*.sh
 pype/__pycache__/
