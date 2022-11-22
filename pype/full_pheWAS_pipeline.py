@@ -442,6 +442,9 @@ def run_genotype_pheWAS(sample_2_independent_dict, pheno_dict, out_dir, raw_dir,
 		p.start()
 		pool.append(p)
 
+	# put a small sleep to allow the processes to start - hacky solution (need to find better solution to broken pipe error)
+	time.sleep(1)
+
 	for file, (_, output_prefix) in sample_2_independent_dict.items():
 
 		# find the raw genotype files with the same prefix
@@ -505,7 +508,6 @@ def run_genotype_pheWAS(sample_2_independent_dict, pheno_dict, out_dir, raw_dir,
 
 	# wait for all the workers to finish before continuing with the main code
 	for p in pool:
-		p.close()
 		p.join()
 
 def run_phenotype_pheWAS(sample_2_independent_dict, pheno_dict, out_dir, data_fields_dir, reg, thresh, threads, add_covariates, ethnicity_groups):
@@ -1073,7 +1075,7 @@ def main():
 				covariate_name_map = covariate_name_map.set_index('Data_field')['Name'].to_dict()
 			else:
 				covariate_name_map = constants.dict_UKB_fields_to_names
-			print(phenof)
+
 			# fix the covariate data (one hot encoding, calculating age, etc)
 			pheWAS_ready_phenos_dict = fix_covariate_data(pheno_dict = data_dict, 
 													phenotype_fields = phenof, 
