@@ -473,7 +473,6 @@ def main():
 	parser.add_argument('--directory_name', help = "Name of the directory to save the plots in", required=True, type = str)
 	parser.add_argument('--output_prefix', help = "Prefix for output files", required = True, type = str)
 	parser.add_argument('--output_extension', help = "Extension for output files", required = True, choices = [".png", ".jpg", ".jpeg"], type = str)
-	parser.add_argument('--category_name', help = "Category name that the independent variables are associated [either the variants or the phenotypes]", required=True, type = str)
 	parser.add_argument('--phewas_type', help = "Whether the PheWAS was run with genotypes or phenotypes as the independent variables", required = True, choices = ["genotype", "phenotype"], type = str)
 
 	# Optional Miscellaneous Arguments
@@ -481,6 +480,7 @@ def main():
 	parser.add_argument('--clear_old_files', help = "Clear old files", required = False, default = False, action = 'store_true')
 	parser.add_argument('--plot_phewas_categories_separately', help = "Plot PheWAS results for each category separately as well as in aggregate", required = False, default = False, action = 'store_true')
 	parser.add_argument('--compare_original_betas', help = "Whether to annotate significant results with their original beta values and PheWAS beta values", required = False, default = False, action = 'store_true')
+	parser.add_argument('--single_category', help = "Whether the PheWAS results file contains results across just one independent variable category", required = False, default = False, action = 'store_true')
 
 	# Gene Annotation
 	parser.add_argument('--variant_files', help = "Files containing the list of variants (from the PheWAS) to use for SNP-to-Gene mapping", required = False, action = 'append')
@@ -524,7 +524,6 @@ def main():
 	directory_name = args.directory_name
 	output_prefix = args.output_prefix
 	output_extension = args.output_extension
-	category_name = args.category_name
 	phewas_type = args.phewas_type
 
 	# Optional Miscellaneous Arguments
@@ -532,6 +531,7 @@ def main():
 	clear_old_files = args.clear_old_files
 	plot_phewas_categories_separately = args.plot_phewas_categories_separately
 	compare_original_betas = args.compare_original_betas
+	single_category = args.single_category
 
 	# Gene Annotation
 	variant_files = args.variant_files
@@ -596,6 +596,10 @@ def main():
 		if annotate:
 			annotation_type = 'genotype'
 	
+	if plot_phewas_categories_separately and single_category:
+		print("Error: You have specified to plot the PheWAS categories separately but also specified that there is only one category to plot. Please only specify one of these options.")
+		exit()
+	
 
 	# ----------------------------------------------------------------------------------------- #
 
@@ -606,6 +610,11 @@ def main():
 
 	# load the data to be plotted
 	phewas_results = pd.read_csv(phewas_results, sep = '\t')
+
+	# any rows with missing values, positive or negative infinity, set them to the max value for that column
+	phewas_results = phewas_results.replace([np.inf, -np.inf], np.nan)
+	phewas_results = phewas_results.fillna(phewas_results.max())
+	
 
 	# if there is a user specified mapping, then use it
 	if mapping is not None:
