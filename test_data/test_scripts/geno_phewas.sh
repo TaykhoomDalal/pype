@@ -12,6 +12,8 @@ python3 ~/pype/pype/full_pheWAS_pipeline.py \
   --directory_name ~/pype/test_data/geno_phewas_$1 \
   --save_phenotypes \
   --pickle_intermediates \
+  --plink2_installation 'module' \
+  --plink2_module_load 'module load plink2' \
   --correction 'bonferroni' \
   --sample_threshold 100 \
   --covariates ~/pype/test_data/input_ex/test_covariates.tsv \

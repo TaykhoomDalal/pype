@@ -146,7 +146,7 @@ def extract_variants_and_samples(sample_2_independent_dict, bfiles_dir, geno_dir
 				# check to see if only the .zst file is in the directory (if so, we need to extract it)
 				if not os.path.exists(bfiles_dir + '/' + file + '.bed'):
 					decompress_command = " ".join(['plink2', '--zd', bfiles_dir + '/' + file + '.bed.zst', bfiles_dir + '/' + file + '.bed'])
-					os.system('module load plink2 && ' + decompress_command)
+					os.system(PLINK_LOAD_COMMAND + decompress_command)
 					# os.system('zstd -d ' + bfiles_dir + '/' + file + '.bed.zst')
 
 			extraction_command = " ".join(["plink2", "--bed", bfiles_dir + '/' + file + '.bed',
@@ -159,7 +159,7 @@ def extract_variants_and_samples(sample_2_independent_dict, bfiles_dir, geno_dir
 							"--make-bed", 
 							"--out", geno_dir + '/' + output_prefix + '_' + file])
 			
-			os.system('module load plink2 && ' + extraction_command)
+			os.system(PLINK_LOAD_COMMAND + extraction_command)
 			print('chr' + str(i) + ' done')
 
 		os.remove(temp_file)
@@ -406,7 +406,7 @@ def create_raw_geno_files(geno_dir, raw_dir):
 							"--bfile", geno_file, 
 							"--out", raw_dir + '/' + geno_file_prefix])
 
-		os.system('module load plink2 && ' + command)
+		os.system(PLINK_LOAD_COMMAND + command)
 
 def phewas_target(thresh, reg, target_args):
 	
@@ -715,7 +715,9 @@ def main():
 	parser.add_argument('--covariates_file', help='File of covariate data fields', required=False, default = None, type = str)
 	parser.add_argument('--ethnicity_groups', help = 'Ethnicity groups to use for pheWAS', required = False, default = ['Ethnicity.White'], choices = ['Ethnicity.White', 'Ethnicity.Asian', 'Ethnicity.Black', 'Ethnicity.Other'],  nargs = '+')
 	parser.add_argument('--output_prefix', help = 'Prefix for output files (specify one for each sample file) (DO NOT PUT UNDERSCORES IN THIS)', required = True, action = 'append')
-
+	parser.add_argument('--plink2_installation', help = 'Specify whether Plink2 is installed locally (on PATH) or in a module', required = False, default = 'local', choices = ['local', 'module'], type = str)
+	parser.add_argument('--plink2_module_load', help = 'Specify the module load instruction if Plink2 loaded through module [Ex. module load plink2]', required = False, default = None, type = str)
+	
 	# Data logging / location arguments
 	parser.add_argument('--directory_name', help='Directory to store intermediate files', required=True, type = str)
 	parser.add_argument('--save_phenotypes', help = 'If you want to save the phenotypes, pass this flag', required = False, default = False, action = 'store_true')
@@ -762,6 +764,8 @@ def main():
 	covariates_file = args.covariates_file
 	ethnicity_groups = args.ethnicity_groups
 	output_prefixes = args.output_prefix
+	plink2_installation = args.plink2_installation
+	plink2_module_load = args.plink2_module_load
 
 	# Data logging / location arguments
 	directory_name = args.directory_name
@@ -864,6 +868,15 @@ def main():
 		DEFAULT_SHOWCASE_URL = data_showcase_search_url
 	else:
 		DEFAULT_SHOWCASE_URL = constants.DEFAULT_SHOWCASE_URL
+
+	global PLINK_LOAD_COMMAND
+	if plink2_installation == 'module':
+		if plink2_module_load == '':
+			print('Error: You must specify the module to load for plink2.')
+			exit()
+		PLINK_LOAD_COMMAND = plink2_module_load + ' && '
+	else:
+		PLINK_LOAD_COMMAND = ''
 
 	# ----------------------------------------------------------------------------------------- #
 
