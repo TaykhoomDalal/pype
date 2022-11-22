@@ -49,46 +49,42 @@ PYPE also annotates each significant variant with the upstream and downstream ge
 
 ## Installation
 
-PYPE is currently a command line tool and can be installed by cloning the repository and running the setup.py file. 
+PYPE is currently a command line tool and can be installed by cloning the repository and installing the requirements.txt file. It is also extremely important to note that this package requires the installation of plink2, which can be found [here](https://www.cog-genomics.org/plink/2.0/), on either the user's local machine or on their High Performance Cluster (preferred), as a program on the PATH environment variable or accessible through some sort of environment [modules](https://modules.readthedocs.io/en/latest/).
 
 ## Usage
 
 PYPE is a command line tool, so the best way of using it is to create a simple bash script where you can specify all the parameters that you want to use.
 
+To see minimal reproducible examples of how to use PYPE, please see the [test_data](test_data/test_scripts/) folder.
+
 ### PheWAS
-Here we will use the example data provided with PYPE to run a PheWAS analysis on fake UK Biobank phenotype and genotype data 
+
+Here we will use the example data provided with PYPE to run a PheWAS analysis on fake UK Biobank phenotype and genotype data using [category 1006](https://biobank.ndph.ox.ac.uk/showcase/label.cgi?id=1006), Physical measure summary, as the phenotypes of interest. 
 
 ```
-#!/bin/bash
+./geno_phewas.sh 1006
+```
 
-pype \
-  --phenotypes ~/test_data/input_ex/test.tab \
-  --bfiles ~/test_data/input_ex/test_bfiles \
-  --covariates ~/test_data/input_ex/test_covariates.tsv \
-  --samples ~/test_data/input_ex/test_in_sample_IDs.txt \
-  --variants ~/test_data/input_ex/test_Top_SNPS.tsv \
-  --threads 1 \
-  --memory 16000 \
-  --location ~/test_data/output_ex/ \
-  --name test_phewas \
+There is also an example with running a PheWAS analysis with phenotypes as your independent variables, specifically using phenotypes [90012](https://biobank.ndph.ox.ac.uk/ukb/field.cgi?id=90012) (Overall Acceleration Average) and [21001](https://biobank.ctsu.ox.ac.uk/crystal/field.cgi?id=21001) (Body Mass Index) against [category 1019](https://biobank.ndph.ox.ac.uk/showcase/label.cgi?id=1019), Linked Health Outcomes, as the phenotypes of interest. 
 
-
+```
+./pheno_phewas.sh 1019
 ```
 
 ### Visualization
 
-Here is an example of how to run the visualization scripts on the output of the PheWAS analysis above:
+By running the script below, we can generate manhattan plots, volcano plots, and category enrichment plots for the PheWAS analysis that we ran above. 
 
 ```
-
+./visualize.sh
 ```
 
 ### MR
 
-Here is an example of how to run the MR analysis using a set of variants (not from the example data above as you need at least 2-3 variants to run MR):
+By running the script below, we can run an MR analysis using a separate set of variants (not from the example data above as you need at least 2-3 variants to run MR):
 
 ```
-
+./run_mr.sh
 ```
 
 ## Download HG19 Gene List
