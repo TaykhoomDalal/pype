@@ -26,18 +26,20 @@ open_gwas_batches = {"bbj-a" : "Biobank Japan release of disease traits",
                     "ukb-d" : "Neale lab analysis of UK Biobank phenotypes (round 2)",
                     "ukb-e" : "Pan-ancestry genetic analysis of the UK Biobank performed at the Broad Institute"}
 
-
-
 def findWord(word, phrase):
-    return re.compile(r'\b({0})\b'.format(word), flags=re.IGNORECASE).search (phrase)
+    return re.compile(r'\b({0})\b'.format(word), flags=re.IGNORECASE).search(phrase)
+
+def setAllStudiesPath(path):
+    global ALL_STUDIES_PATH
+    ALL_STUDIES_PATH = path
 
 def cache_all_studies():
     all_studies = gwasinfo()
-    utility_funcs.pickle_object(all_studies, './cached/all_studies.pkl')
+    utility_funcs.pickle_object(all_studies, ALL_STUDIES_PATH)
 
 def get_all_studies():
     try:
-        return utility_funcs.unpickle_object('./cached/all_studies.pkl')
+        return utility_funcs.unpickle_object(ALL_STUDIES_PATH)
     except:
         raise ValueError('No cached studies found. Please run_mr with --cache_all_studies flag')
 
