@@ -1,0 +1,22 @@
+PLINK v2.00a3.6LM 64-bit Intel (14 Aug 2022)
+Options in effect:
+  --bfile /home/tad368/pype/test_data/geno_phewas_1006/geno/test_results_chr1
+  --export A
+  --out /home/tad368/pype/test_data/geno_phewas_1006/raw/test_results_chr1
+
+Hostname: compute-a-16-166.o2.rc.hms.harvard.edu
+Working directory: /home/tad368/pype/test_data/test_scripts
+Start time: Mon Nov 21 22:00:38 2022
+
+Random number seed: 1669086038
+257564 MiB RAM detected; reserving 128782 MiB for main workspace.
+Using up to 32 threads (change this with --threads).
+979 samples (0 females, 979 males; 979 founders) loaded from
+/home/tad368/pype/test_data/geno_phewas_1006/geno/test_results_chr1.fam.
+1 variant loaded from
+/home/tad368/pype/test_data/geno_phewas_1006/geno/test_results_chr1.bim.
+1 binary phenotype loaded (484 cases, 495 controls).
+--export A:
+/home/tad368/pype/test_data/geno_phewas_1006/raw/test_results_chr1.raw written.
+
+End time: Mon Nov 21 22:00:38 2022

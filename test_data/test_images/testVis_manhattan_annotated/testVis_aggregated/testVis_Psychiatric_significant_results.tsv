@@ -1,0 +1,2 @@
+PheWAS_Category	Ethnicity	Description	Data_Field	Independent_Var	Samples	-log(p)	p-val	beta	std_error	Category	Gene	Original_beta	Original_pval	Direction
+test	White	History of psychiatric care on admission	f.41218.0.0	rs6426192	659/969	11.949389447716852	1.123596951663201e-12	2.8700372312984763	0.3706944546789937	Psychiatric	DDX11L1, DDX11L17	0.015	1.3e-09	S
