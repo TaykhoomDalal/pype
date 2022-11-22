@@ -18,7 +18,7 @@ python3 ~/pype/pype/full_pheWAS_pipeline.py \
   --sample_threshold 100 \
   --covariates ~/pype/test_data/input_ex/test_covariates.tsv \
   --gene_file ~/pype/pype/cached/hg19_gene_list \
-  # --reuse_genos ~/pype/test_data/[dir]/geno \
-  # --reuse_raw ~/pype/test_data/[dir]/raw \
-  # --reuse_phenotypes ~/pype/test_data/[dir]/pheno \
-  # --old_data_fields_dir ~/pype/test_data/[dir]/data_fields \
+  # --reuse_genos ~/pype/test_data/geno_phewas_$1/geno \
+  # --reuse_raw ~/pype/test_data/geno_phewas_$1/raw \
+  # --reuse_phenotypes ~/pype/test_data/geno_phewas_$1/pheno \
+  # --old_data_fields_dir ~/pype/test_data/geno_phewas_$1/data_fields \
