@@ -6,7 +6,7 @@ python3 ~/pype/pype/visualize.py \
     --output_prefix 'testVis' \
     --output_extension '.png' \
     --phewas_type 'genotype' \
-    --mapping ~/pype/pype/category_mappings.txt \
+    --mapping ~/pype/pype/cached/category_mappings.txt \
     --clear_old_files \
     --single_category \
     --variant_files ~/pype/test_data/input_ex/test_Top_SNPS.tsv \
