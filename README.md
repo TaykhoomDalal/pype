@@ -49,7 +49,7 @@ PYPE also annotates each significant variant with the upstream and downstream ge
 
 ## Installation
 
-PYPE is currently a command line tool and can be installed by cloning the repository and installing the requirements.txt file. It is also extremely important to note that this package requires the installation of plink2, which can be found [here](https://www.cog-genomics.org/plink/2.0/), on either the user's local machine or on their High Performance Cluster (preferred), as a program on the PATH environment variable or accessible through some sort of environment [modules](https://modules.readthedocs.io/en/latest/).
+PYPE is currently a command line tool and can be installed by cloning the repository and installing the necessary packages using the [environment.yml](environment.yml) file. It is also extremely important to note that PYPE requires the installation of plink2, which can be found [here](https://www.cog-genomics.org/plink/2.0/), on either the user's local machine or on their High Performance Cluster (preferred), as a program on the PATH environment variable or accessible through some sort of environment [modules](https://modules.readthedocs.io/en/latest/).
 
 ## Usage
 
