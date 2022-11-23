@@ -423,13 +423,21 @@ def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_ge
 							break
 			
 			if phewas_type == 'genotype' and 'Gene' in outlier_removed_ind_var_i.columns:
-				genes = outlier_removed_ind_var_i['Gene'].unique()
+				
+				# for this variant, get the first row of the dataframe and get the Gene column value
+				genes = outlier_removed_ind_var_i.iloc[0]['Gene']
 			
-				if genes.any():
+				if pd.isna(genes):
 					genes = ''
 				else:
+					# convert the genes to a list
+					genes = genes.split(', ')
+
 					if len(genes) > max_genes:
 						genes = ", ".join(genes[:max_genes])
+					else:
+						genes = ", ".join(genes)
+					
 					genes = '(' + genes + ')'
 
 					ind_title = ind_title + ' ' + ", ".join(genes)
