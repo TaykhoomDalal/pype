@@ -1,7 +1,7 @@
 PheWAS_Category	Ethnicity	Description	Data_Field	Independent_Var	Samples	-log(p)	p-val	beta	std_error	Category	Gene	Original_beta	Original_pval	Direction
+test	White	Destinations on discharge from hospital (recoded)	f.41248.0.0	rs6426192	745/969	245.4463264855812	0.0	400.0503462321385	0.0293517700192214	Health	DDX11L1, DDX11L17	0.015	1.3e-09	S
 test	White	Methods of discharge from hospital (recoded)	f.41250.0.0	rs6426192	750/969	245.4463264855812	0.0	400.04798941286543	0.0328228417303604	Health	DDX11L1, DDX11L17	0.015	1.3e-09	S
 test	White	Sources of admission to hospital (recoded)	f.41251.0.0	rs6426192	755/969	245.4463264855812	0.0	399.9618497945669	0.0234156842590853	Health	DDX11L1, DDX11L17	0.015	1.3e-09	S
-test	White	Destinations on discharge from hospital (recoded)	f.41248.0.0	rs6426192	745/969	245.4463264855812	0.0	400.0503462321385	0.0293517700192214	Health	DDX11L1, DDX11L17	0.015	1.3e-09	S
 test	White	Patient classification on admission (recoded)	f.41247.0.1	rs6426192	432/969	245.4463264855812	3.578273353897386e-246	800.0407236558474	0.1425230445802486	Health	DDX11L1, DDX11L17	0.015	1.3e-09	S
 test	White	Hospital episode type	f.41231.0.0	rs6426192	660/969	71.33515729929977	4.622135796197999e-72	0.4211324969118518	0.0130781482293446	Health	DDX11L1, DDX11L17	0.015	1.3e-09	S
 test	White	Main speciality of consultant (recoded)	f.41245.0.1	rs6426192	500/969	25.098880062031	7.963792540224944e-26	730.5056670450607	53.870941302256576	Health	DDX11L1, DDX11L17	0.015	1.3e-09	S
