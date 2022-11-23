@@ -440,7 +440,7 @@ def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_ge
 					
 					genes = '(' + genes + ')'
 
-					ind_title = ind_title + ' ' + ", ".join(genes)
+				ind_title = ind_title + ' ' + genes
 			
 			adjust_text(texts, arrowprops=dict(arrowstyle="->", color='black', lw=0.2))
 
