@@ -34,12 +34,12 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	all_top.to_csv(output_file.rsplit('.', 1)[0] + '_significant_results.tsv', sep = '\t', index = False)
 
 	# remove extreme outliers in order to be able to visualize the data more coherently
-	phewas_results = phewas_results[phewas_results["-log(p)"].between(phewas_results["-log(p)"].quantile(low), phewas_results["-log(p)"].quantile(high))]
+	outlier_removed_phewas_results = phewas_results[phewas_results["-log(p)"].between(phewas_results["-log(p)"].quantile(low), phewas_results["-log(p)"].quantile(high))]
 	
 	# remove all results with p-value above the significance level
 	# groupby category and find median of all these significant results
 	# reset the index and sort by the log pvalues so largest will be at the right end of the plot
-	medians = phewas_results.loc[phewas_results["-log(p)"] >= sig].groupby('Category')["-log(p)"].mean().reset_index().sort_values(by="-log(p)").reset_index(drop=True)
+	medians = outlier_removed_phewas_results.loc[outlier_removed_phewas_results["-log(p)"] >= sig].groupby('Category')["-log(p)"].mean().reset_index().sort_values(by="-log(p)").reset_index(drop=True)
 
 
 	sig_cats = medians['Category'].values
@@ -47,9 +47,9 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	# don't forget to re-add the categories that have no significant results
 	# calculate their median pvalues and add them to the dataframe
 	# sorting by the log pvalues so largest will still be at the right end of the plot
-	for cat in phewas_results['Category'].unique():
+	for cat in outlier_removed_phewas_results['Category'].unique():
 		if cat not in medians['Category'].values:
-			cat_median = phewas_results.groupby('Category')["-log(p)"].mean()[cat]
+			cat_median = outlier_removed_phewas_results.groupby('Category')["-log(p)"].mean()[cat]
 			medians = pd.concat([medians, pd.DataFrame({'Category': cat, "-log(p)": cat_median}, index = [0])])
 	
 	medians = medians.sort_values(by="-log(p)").reset_index(drop=True)
@@ -70,10 +70,10 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 		return
 
 	# sort the categories by the median list so we can plot in the right order
-	phewas_results = phewas_results.sort_values(by='Category', key = sorter)
+	outlier_removed_phewas_results = outlier_removed_phewas_results.sort_values(by='Category', key = sorter)
 
 	# get the list of categories, to map the colors to the categories
-	categories = phewas_results['Category'].unique()
+	categories = outlier_removed_phewas_results['Category'].unique()
 	n_categories = len(categories)
 
 	color_map = {}
@@ -88,9 +88,11 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 		color_map[pheno] = pheno_color
 
 	if plt_top_cat:
-		plot_significant_categories(indices_of_significant_cats, output_file, title, phewas_results, sig, annotate, N, compare_orig_betas, transparency, color_map)
+		# sort the 
+
+		plot_significant_categories(indices_of_significant_cats, output_file, title, phewas_results.sort_values(by='Category', key = sorter), sig, annotate, N, compare_orig_betas, transparency, color_map)
 	
-	if phewas_results.empty:
+	if outlier_removed_phewas_results.empty:
 		print('No significant results found for this phenotype')
 		return
 	
@@ -98,8 +100,8 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	plt.figure(figsize=(15, 8), dpi=500)
 
 	# data for plotting
-	significant_results = phewas_results.loc[phewas_results["-log(p)"] >= sig]
-	non_significant_results = phewas_results.loc[phewas_results["-log(p)"] < sig]
+	significant_results = outlier_removed_phewas_results.loc[outlier_removed_phewas_results["-log(p)"] >= sig]
+	non_significant_results = outlier_removed_phewas_results.loc[outlier_removed_phewas_results["-log(p)"] < sig]
 
 	# get the significant results which have beta values that are positive or negative (to plot them differently)
 	significant_phewas_pos_beta = significant_results.loc[significant_results['beta'] >= 0].copy()
@@ -323,7 +325,7 @@ def category_enrichment_plot(phewas_results, sig,title, output_file):
 	plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
 	plt.close()
 
-def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_genes, annotate, transparency, compare_orig_betas):
+def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_genes, annotate, transparency, compare_orig_betas, logp_low, logp_high, beta_low, beta_high):
 
 	# make a volcano plot for each independent variable that was tested
 	ind_vars = phewas_results['Independent_Var'].unique()
@@ -334,14 +336,21 @@ def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_ge
 
 	for ind_var in ind_vars:
 	
-		ind_var_i = phewas_results.loc[phewas_results['Independent_Var'] == ind_var]
-		
+		ind_var_i = phewas_results.loc[phewas_results['Independent_Var'] == ind_var].copy(deep = True)
+
+		# save the significant results to a file (before filtering out the super low p-values)
+		all_top = ind_var_i.loc[ind_var_i["-log(p)"] >= sig].sort_values(by = "-log(p)", ascending = False).reset_index(drop = True)
+		all_top.to_csv(output_base_name + '_' + ind_var +'.tsv', sep = '\t', index = False)
+
+		# remove extreme outliers in order to be able to visualize the data more coherently
+		outlier_removed_ind_var_i = ind_var_i[ind_var_i["-log(p)"].between(ind_var_i["-log(p)"].quantile(logp_low), ind_var_i["-log(p)"].quantile(logp_high))]
+	
 		# for visualization purposes, in my examples, found to be the best, but can be changed based on the data
-		ind_var_i = ind_var_i.loc[(ind_var_i['beta'] < 10) & (ind_var_i['beta'] > -10)].reset_index()
+		outlier_removed_ind_var_i = outlier_removed_ind_var_i.loc[(outlier_removed_ind_var_i['beta'] < beta_high) & (outlier_removed_ind_var_i['beta'] > beta_low)].reset_index()
 
 		# data for plotting
-		significant_results = ind_var_i.loc[ind_var_i["-log(p)"] >= sig]
-		non_significant_results = ind_var_i.loc[ind_var_i["-log(p)"] < sig]
+		significant_results = outlier_removed_ind_var_i.loc[outlier_removed_ind_var_i["-log(p)"] >= sig]
+		non_significant_results = outlier_removed_ind_var_i.loc[outlier_removed_ind_var_i["-log(p)"] < sig]
 
 		# get the significant results which have beta values that are positive or negative (to plot them differently)
 		significant_phewas_pos_beta = significant_results.loc[significant_results['beta'] >= 0].copy()
@@ -394,29 +403,29 @@ def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_ge
 			texts = []
 			
 			# get top N most significant results
-			ind_var_i = ind_var_i.sort_values(by = '-log(p)', ascending = False)
+			outlier_removed_ind_var_i = outlier_removed_ind_var_i.sort_values(by = '-log(p)', ascending = False)
 
-			descriptions = ind_var_i['Description']
+			descriptions = outlier_removed_ind_var_i['Description']
 
 			results_annotated = N
 			# annotate the top N most significant results with their description
 			for i, desc in enumerate(descriptions):
-				if ind_var_i.iloc[i]["-log(p)"] > sig:
+				if outlier_removed_ind_var_i.iloc[i]["-log(p)"] > sig:
 					
 					# check if either the x or y value is not a finite number
-					if ind_var_i.iloc[i]["-log(p)"] == np.inf or ind_var_i.iloc[i]["beta"] == np.inf:
+					if outlier_removed_ind_var_i.iloc[i]["-log(p)"] == np.inf or outlier_removed_ind_var_i.iloc[i]["beta"] == np.inf:
 						continue
 					else:
-						texts.append(plt.text(ind_var_i.iloc[i]['beta'], ind_var_i.iloc[i]["-log(p)"], desc, fontsize = 9, ha = 'center', va = 'center'))
+						texts.append(plt.text(outlier_removed_ind_var_i.iloc[i]['beta'], outlier_removed_ind_var_i.iloc[i]["-log(p)"], desc, fontsize = 9, ha = 'center', va = 'center'))
 						results_annotated -= 1
 
 						if results_annotated == 0:
 							break
 			
-			if phewas_type == 'genotype' and 'Gene' in ind_var_i.columns:
-				genes = ind_var_i['Gene'].unique()
+			if phewas_type == 'genotype' and 'Gene' in outlier_removed_ind_var_i.columns:
+				genes = outlier_removed_ind_var_i['Gene'].unique()
 			
-				if pd.isnull(genes):
+				if genes.any():
 					genes = ''
 				else:
 					if len(genes) > max_genes:
@@ -490,8 +499,6 @@ def main():
 	parser.add_argument('--save_gene_annotation', help = "Save the gene annotation file", required = False, default = False, action = 'store_true')
 
 	# Controlling Plot Aesthetics
-	parser.add_argument('--lower_outlier', help = "Lower outlier threshold of points to remove (for improving how the plot looks)", required=False, default = 0, type = float)
-	parser.add_argument('--upper_outlier', help = "Upper outlier threshold of points to remove (for improving how the plot looks)", required=False, default = 0.995, type = float)
 	parser.add_argument('--seed', help = "Seed value to make the adjustText library (annotations) deterministic", required = False, default = None, type = int)
 	parser.add_argument('--annotate', help = "Add annotations to the manhattan or volcano plots", required = False, default = False, action = 'store_true')
 	parser.add_argument('--transparency', help = "Transparency of points", required = False, default = 0.75, type = float)
@@ -502,6 +509,8 @@ def main():
 	parser.add_argument('--plot_top_data_field_categories', help = "Plot each data field category in the manhattan plot with significant results", required = False, default = False, action = 'store_true')
 	parser.add_argument('--annotate_top_N_manhattan', help = "Number of how many (max) significant results to annotate in each manhattan plot", required = False, default = 10, type = int)
 	parser.add_argument('--manhattan_title', help = "Title of the top level manhattan plot of the data", required=False, default = None, nargs='+')
+	parser.add_argument('--logp_lower_outlier_thresh_manhattan', help = "Lower outlier threshold (ratio) of points to remove for the manhattan plot (for improving how the plot looks)", required=False, default = 0, type = float)
+	parser.add_argument('--logp_upper_outlier_thresh_manhattan', help = "Upper outlier threshold (ratio) of points to remove for the manhattan plot (for improving how the plot looks)", required=False, default = 0.995, type = float)
 
 	# Category Enrichment Plot Specific
 	parser.add_argument('--plot_category_enrichment', help = "Plot category enrichment bar plot", required = False, default = False, action = 'store_true')
@@ -512,6 +521,11 @@ def main():
 	parser.add_argument('--volcano_title', help = "Title of the volcano plot (will have the SNP-Gene mapping appended if annotations and gene file specified)", required=False, default = None, nargs='+')
 	parser.add_argument('--max_genes', help = "Maximum number of genes to include in the title for the volcano plot", required=False, default = 3, type = int)
 	parser.add_argument('--annotate_top_N_volcano', help = "Number of how many (max) significant results to annotate in each volcano plot", required = False, default = 5, type = int)
+	parser.add_argument('--beta_lower_outlier_val', help = "Lower outlier values of betas to remove for the volcano plot (for improving how the plot looks)", required=False, default = -10, type = float)
+	parser.add_argument('--beta_upper_outlier_val', help = "Upper outlier values of betas to remove for the volcano plot (for improving how the plot looks)", required=False, default = 10, type = float)
+	parser.add_argument('--logp_lower_outlier_thresh_volcano', help = "Lower outlier threshold (ratio) of points to remove for the volcano plot (for improving how the plot looks)", required=False, default = 0, type = float)
+	parser.add_argument('--logp_upper_outlier_thresh_volcano', help = "Upper outlier threshold (ratio) of points to remove for the volcano plot (for improving how the plot looks)", required=False, default = 1, type = float)
+
 
 	# Significance Level Information
 	parser.add_argument('--alpha', help = "Significance threshold", required = False, default = 0.05, type = float)
@@ -541,8 +555,8 @@ def main():
 	save_gene_annotation = args.save_gene_annotation
 
 	# Controlling Plot Aesthetics
-	lower_outlier = args.lower_outlier
-	upper_outlier = args.upper_outlier
+	logp_lower_outlier_thresh_manhattan = args.logp_lower_outlier_thresh_manhattan
+	logp_upper_outlier_thresh_manhattan = args.logp_upper_outlier_thresh_manhattan
 	seed = args.seed
 	annotate = args.annotate
 	transparency = args.transparency
@@ -563,7 +577,11 @@ def main():
 	volcano_title = args.volcano_title
 	max_genes = args.max_genes
 	annotate_top_N_volcano = args.annotate_top_N_volcano
-
+	beta_lower_outlier_val = args.beta_lower_outlier_val
+	beta_upper_outlier_val = args.beta_upper_outlier_val
+	logp_lower_outlier_thresh_volcano = args.logp_lower_outlier_thresh_volcano
+	logp_upper_outlier_thresh_volcano = args.logp_upper_outlier_thresh_volcano
+	
 	# Significance Level Information
 	alpha = args.alpha
 	correction = args.correction
@@ -600,6 +618,40 @@ def main():
 		print("Error: You have specified to plot the PheWAS categories separately but also specified that there is only one category to plot. Please only specify one of these options.")
 		exit()
 	
+	if plot_manhattan or plot_volcano:
+		if logp_lower_outlier_thresh_manhattan < 0 or logp_lower_outlier_thresh_manhattan > 1:
+			print("Error: The log(p) lower outlier must be between 0 and 1.")
+			exit()
+		
+		if logp_upper_outlier_thresh_manhattan < 0 or logp_upper_outlier_thresh_manhattan > 1:
+			print("Error: The log(p) upper outlier must be between 0 and 1.")
+			exit()
+		
+		if logp_lower_outlier_thresh_manhattan >= logp_upper_outlier_thresh_manhattan:
+			print("Error: The log(p) lower outlier cannot be greater than or equal to the log(p) upper outlier.")
+			exit()
+	
+	if plot_volcano:
+		
+		if logp_lower_outlier_thresh_volcano < 0 or logp_lower_outlier_thresh_volcano > 1:
+			print("Error: The log(p) lower outlier must be between 0 and 1.")
+			exit()
+		
+		if logp_upper_outlier_thresh_volcano < 0 or logp_upper_outlier_thresh_volcano > 1:
+			print("Error: The log(p) upper outlier must be between 0 and 1.")
+			exit()
+		
+		if logp_lower_outlier_thresh_volcano >= logp_upper_outlier_thresh_volcano:
+			print("Error: The log(p) lower outlier cannot be greater than or equal to the log(p) upper outlier.")
+			exit()
+
+		if beta_lower_outlier_val >= beta_upper_outlier_val:
+			print("Error: The beta lower outlier cannot be greater than or equal to the beta upper outlier.")
+			exit()
+	
+	if transparency < 0 or transparency > 1:
+		print("Error: The transparency must be between 0 and 1.")
+		exit()
 
 	# ----------------------------------------------------------------------------------------- #
 
@@ -613,7 +665,7 @@ def main():
 
 	# any rows with missing values, positive or negative infinity, set them to the max value for that column
 	phewas_results = phewas_results.replace([np.inf, -np.inf], np.nan)
-	phewas_results = phewas_results.fillna(phewas_results.max())
+	phewas_results = phewas_results.fillna(phewas_results.max(numeric_only=True))
 	
 
 	# if there is a user specified mapping, then use it
@@ -763,8 +815,8 @@ def main():
 
 		manhattan_plot(phewas_results  = phewas_results, 
 						sig = significance_level, 
-						low = lower_outlier,
-						high = upper_outlier,
+						low = logp_lower_outlier_thresh_manhattan,
+						high = logp_upper_outlier_thresh_manhattan,
 						title = manhattan_title,
 						output_file = manhattan_agg_dir + '/' + output_prefix + output_extension,
 						pheno = 'Aggregate',
@@ -799,7 +851,11 @@ def main():
 						max_genes = max_genes,
 						annotate = annotate,
 						transparency = transparency,
-						compare_orig_betas = compare_original_betas)
+						compare_orig_betas = compare_original_betas,
+						logp_low = logp_lower_outlier_thresh_volcano,
+						logp_high = logp_upper_outlier_thresh_volcano,
+						beta_low = beta_lower_outlier_val,
+						beta_high = beta_upper_outlier_val)
 						
 	if plot_phewas_categories_separately:
 		for category, plot_info in phewas_categories_map.items():
@@ -811,8 +867,8 @@ def main():
 				print('Plotting %s Manhattan plot' % (category))
 				manhattan_plot(phewas_results  = predictor_specific, 
 								sig = significance_level, 
-								low = lower_outlier,
-								high = upper_outlier,
+								low = logp_lower_outlier_thresh_manhattan,
+								high = logp_upper_outlier_thresh_manhattan,
 								title = plot_info[MANHATTAN][TITLE],
 								output_file = plot_info[MANHATTAN][FILE],
 								pheno = category,
@@ -841,7 +897,11 @@ def main():
 							max_genes = max_genes,
 							annotate = annotate,
 							transparency = transparency,
-							compare_orig_betas = compare_original_betas)
+							compare_orig_betas = compare_original_betas,
+							logp_low = logp_lower_outlier_thresh_volcano,
+							logp_high = logp_upper_outlier_thresh_volcano,
+							beta_low = beta_lower_outlier_val,
+							beta_high = beta_upper_outlier_val)
 
 
 if __name__ == '__main__':
