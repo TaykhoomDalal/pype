@@ -1,4 +1,7 @@
 import pickle
+import mygene
+import pprint
+import myvariant
 import numpy as np
 import pandas as pd
 from collections import defaultdict
@@ -157,3 +160,59 @@ def annotate_genes(gene_file, rsid_df, down, up, regressions, output_dir, pheno_
 		res.to_csv(output_dir + '/' + pheno_name + '_rsID_gene_map.tab', sep = '\t', index = False)
 
 	return regressions, res
+
+def annotateVariantsAndGenes(top_results, variant_fields, gene_fields, out_dir):
+	
+	mv = myvariant.MyVariantInfo()
+	mg = mygene.MyGeneInfo()
+
+	# for all variants in the Independent_Var column, strip everything after the first _
+	top_results['Independent_Var'] = top_results['Independent_Var'].str.split('_').str[0]
+
+	rsIDs = top_results['Independent_Var'].unique().tolist()
+	for rsID in rsIDs:
+		print('Finding information online about variant {} and any nearby genes'.format(rsID))
+		# write the pretty print jsons to a file
+		with open(out_dir + '/' + rsID + '.summary', 'w') as outfile:
+			# write the rsID to the file
+			outfile.write('The variant is: ' + rsID + '\n\n')
+
+			try:
+				# for this variant, get all the rows in the top_results dataframe, and then grab the genes
+				genes = top_results[top_results['Independent_Var'] == rsID]['Gene'].unique()[0]
+			except:
+				continue # get here if gene_file was not provided and therefore there is no Gene column
+
+			if not pd.isnull(genes):
+
+				outfile.write('The genes found associated with this variant are: ' + genes + '\n')
+				
+				variant_json = mv.getvariant(rsID, fields = variant_fields)
+
+				if variant_json is not None:
+					outfile.write('\nHere is some information about the variant that you requested:\n\n')
+					pprint.pprint(variant_json, stream = outfile)
+				else:
+					outfile.write('Unfortunately, no information could be found in the specified databases for this variant.')
+
+				genes = genes.split(', ')
+
+				for gene in genes:
+
+					gene_json = mg.query(gene, field = gene_fields)
+
+					if gene_json is not None:
+						outfile.write('\nHere is some information about gene {}, which was found to be close to this variant:\n\n'.format(gene))
+						pprint.pprint(gene_json, stream = outfile)
+					else:
+						outfile.write('Unfortunately, no summary information could be found for this gene.')
+			else:
+				variant_json = mv.getvariant(rsID, fields = variant_fields)
+
+				if variant_json is not None:
+					outfile.write('\nHere is some information about the variant that you requested:\n\n')
+					pprint.pprint(variant_json, stream = outfile)
+				else:
+					outfile.write('Unfortunately, no information could be found in the specified databases for this variant.\n')
+
+				outfile.write('Unfortunately, no genes were found to be close to this variant.')
