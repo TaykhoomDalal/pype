@@ -1,11 +1,9 @@
-import argparse
-import pandas as pd
-import numpy as np
-import os
-import requests
-from bs4 import BeautifulSoup
 import re
+import argparse
+import requests
+import pandas as pd
 from html import unescape
+from bs4 import BeautifulSoup
 
 def main():
 	parser = argparse.ArgumentParser(description='Annotate results file with category labels')
@@ -75,7 +73,7 @@ def main():
 		print('Finished parsing url for ' + category + ' information')
 		print('Output file: ' + output_file + '\n')
 
-		aggregate_results = aggregate_results.append(df)
+		aggregate_results = pd.concat([aggregate_results, df])
 
 	aggregate_results = aggregate_results.drop(columns = ['Bonferroni_correction'], axis = 1, errors='ignore')
 	aggregate_results.to_csv(aggregate_file, sep='\t', index=False)

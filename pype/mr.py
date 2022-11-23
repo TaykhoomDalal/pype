@@ -1,6 +1,7 @@
 import numpy as np
-from statsmodels.formula.api import wls
 from scipy.stats import norm, chi2, t
+from statsmodels.formula.api import wls
+
 
 def run_mr(mr_type, harmonized_data, beta_exp, beta_out, se_exp, se_out):
     '''

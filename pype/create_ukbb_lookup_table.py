@@ -1,11 +1,11 @@
-import pandas as pd
-from bs4 import BeautifulSoup
 import argparse
+import pandas as pd
 import utility_funcs as uf
+from bs4 import BeautifulSoup
 
 dict_type_to_pandas_type = {'Integer' : 'Int64', 
 							'Sequence' : 'Int64', 
-							'Categorical (single)' : 'category', 
+							'Categorical (single)' : 'Int64', 
 							'Boolean' : 'boolean',
 							'Categorical (multiple)' : 'category',
 							'Text' : 'string',

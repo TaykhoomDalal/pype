@@ -1,17 +1,17 @@
-import matplotlib.pyplot as plt
+import os
+import shutil
+import argparse
+import textwrap
 import numpy as np
 import pandas as pd
-import argparse
 import seaborn as sns
-import textwrap 
-from collections import defaultdict
-import os
-from adjustText import adjust_text
-from matplotlib.patches import Patch
+import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
+from adjustText import adjust_text
+from collections import defaultdict
 from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from utility_funcs import multiple_testing_correction, annotate_genes
-import shutil
 
 def plot_significant_categories(idx_sig_cats, out_file, title, phewas_results, sig_thresh, annotate, N, cmp_orig_betas, transparency, color_map):
 	# for each category in the significant categories
@@ -50,7 +50,7 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	for cat in phewas_results['Category'].unique():
 		if cat not in medians['Category'].values:
 			cat_median = phewas_results.groupby('Category')["-log(p)"].mean()[cat]
-			medians = medians.append(pd.DataFrame({'Category': cat, "-log(p)": cat_median}, index = [0]))
+			medians = pd.concat([medians, pd.DataFrame({'Category': cat, "-log(p)": cat_median}, index = [0])])
 	
 	medians = medians.sort_values(by="-log(p)").reset_index(drop=True)
 

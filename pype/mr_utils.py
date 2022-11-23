@@ -4,8 +4,8 @@ import pandas as pd
 import utility_funcs
 from collections import defaultdict
 from difflib import SequenceMatcher
-from ieugwaspy.query import gwasinfo, tophits, associations
 from ieugwaspy.backwards import legacy_ids
+from ieugwaspy.query import gwasinfo, tophits, associations
 
 open_gwas_batches = {"bbj-a" : "Biobank Japan release of disease traits",
                     "ebi-a" : "Datasets that satisfy minimum requirements imported from the EBI database of complete GWAS summary data",

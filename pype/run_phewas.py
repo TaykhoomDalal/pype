@@ -1,24 +1,22 @@
-import argparse
-from distutils import extension
 import os
-import pandas as pd
-import numpy as np
-from bs4 import BeautifulSoup
 import re
-import requests
-from os import listdir
-from os.path import isfile, join
+import math
+import time
 import pheWAS
 import shutil
-import math
-from datetime import datetime
+import argparse
+import requests
+import constants
+import numpy as np
+import pandas as pd
 from glob import glob
+from os import listdir
 from pathlib import Path
+from bs4 import BeautifulSoup
+from datetime import datetime
+from os.path import isfile, join
 from multiprocessing import Process, Manager
 from utility_funcs import multiple_testing_correction, annotate_genes
-from datetime import datetime
-import time
-import constants
 
 # sentinel lets us know if the process has finished
 SENTINEL = None
@@ -264,6 +262,8 @@ def make_out_of_sample_pheno_file(sample_2_independent_dict, pheno_file, data_fi
 
 	if save_phenos:
 		for file, (_, output_prefix) in sample_2_independent_dict.items():
+
+			predictor_dict[file] = predictor_dict[file].infer_objects()
 
 			if pickle_intermediates:
 				predictor_dict[file].to_pickle(out_dir + '/' + output_prefix + '_subsetted_pheno.pkl', protocol = pickle_protocol)
@@ -648,7 +648,7 @@ def save_top_variants(out_dir, field_dict, correction, alpha, gene_file = None, 
 			if 'Ethnicity' in file:
 				df.loc[df['Data_Field'] == field, 'Ethnicity'] = group
 
-		results = results.append(df)
+		results = pd.concat([results, df])
 
 	if gene_file is not None:
 		# create a aggregate dataframe of all the snps
