@@ -1,9 +1,9 @@
-from statsmodels.formula.api import ols
-from tqdm import tqdm
-import numpy as np
-import pandas as pd
 import re
 import traceback
+import numpy as np
+import pandas as pd
+from tqdm import tqdm
+from statsmodels.formula.api import ols
 
 # Code in this file was inspired from the pyPheWAS package, specifically from the pyPhewasCorev2.py file.
 

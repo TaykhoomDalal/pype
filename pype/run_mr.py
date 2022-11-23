@@ -1,8 +1,7 @@
 import mr
-import pandas as pd
 import mr_utils
 import argparse
-
+import pandas as pd
 
 def main():
 	parser = argparse.ArgumentParser(description="Run Mendelian Randomization analyses with the variants used in the PheWAS")
