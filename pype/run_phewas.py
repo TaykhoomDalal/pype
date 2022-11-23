@@ -4,8 +4,11 @@ import math
 import time
 import pheWAS
 import shutil
+import pprint
+import mygene
 import argparse
 import requests
+import myvariant
 import constants
 import numpy as np
 import pandas as pd
@@ -16,7 +19,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from os.path import isfile, join
 from multiprocessing import Process, Manager
-from utility_funcs import multiple_testing_correction, annotate_genes
+from utility_funcs import multiple_testing_correction, annotate_genes, annotateVariantsAndGenes
 
 # sentinel lets us know if the process has finished
 SENTINEL = None
@@ -692,9 +695,6 @@ def save_top_variants(out_dir, field_dict, correction, alpha, gene_file = None, 
 
 	return results
 
-def annotate_function(top_results, out_dir):
-	pass
-
 def main():
 	# Parse the command line arguments
 	parser = argparse.ArgumentParser(description='Run PheWAS using either genotype or phenotype data from the UKBB.')
@@ -745,6 +745,8 @@ def main():
 	parser.add_argument('--downstream', help = 'Number in KB to check for closest genes', required = False, default = 10, type = int)
 	parser.add_argument('--upstream', help = 'Number in KB to check for closest genes', required = False, default = 10, type = int)
 	parser.add_argument('--annotate', help = 'If you want to annotate the variants / genes with their function / consequences', required = False, default = False, action = 'store_true')
+	parser.add_argument('--variant_fields', help = 'List of variant databases and fields to grab. The full list of choices can be found at: https://docs.myvariant.info/en/latest/doc/data.html#available-fields', required = False, default = ['dbsnp'], nargs = '+')
+	parser.add_argument('--gene_fields', help = 'List of gene databases and fields to grab. The full list of choices can be found at: https://docs.mygene.info/en/latest/doc/data.html#available-fields', required = False, default = ['summary'], nargs = '+')
 
 	args = parser.parse_args()
 	
@@ -794,6 +796,8 @@ def main():
 	downstream = args.downstream
 	upstream = args.upstream
 	annotate = args.annotate
+	variant_fields = args.variant_fields
+	gene_fields = args.gene_fields
 
 	# ---------------------------------------VERIFY ARGS--------------------------------------- #
 
@@ -878,6 +882,17 @@ def main():
 	else:
 		PLINK_LOAD_COMMAND = ''
 
+	if upstream < 0 or downstream < 0:
+		print('Error: The upstream and downstream values for annotating the genes must be non-negative.')
+		exit()
+
+	if annotate and phenotype_phewas:
+		print('Warning: You have specified to annotate variants but are running a phenotype phewas. This argument will be ignored.')
+		annotate = False
+
+	if annotate and gene_file is None:
+		print('Warning: You have specified that you want to annotate the variants / genes but have not provided a gene file. Only the variants will be annotated.')
+
 	# ----------------------------------------------------------------------------------------- #
 
 	# ---------------------------------------CREATE DIRS--------------------------------------- #
@@ -900,6 +915,7 @@ def main():
 	pheno_dir = dir_path + '/pheno'
 	data_fields_dir = dir_path + '/data_fields'
 	pheWAS_dir = dir_path + '/pheWAS'
+	annotation_dir = dir_path + '/annotations'
 
 	# compare the directories we want to create to the passed directory, if they are the same, don't delete the directory
 	if genotype_phewas and geno_dir != reuse_genos:
@@ -926,6 +942,11 @@ def main():
 		shutil.rmtree(data_fields_dir, ignore_errors=True)
 		os.makedirs(data_fields_dir)
 	
+	if annotate:
+		print("Deleting the annotation_dir if it exists and creating a new annotation_dir")
+		shutil.rmtree(annotation_dir, ignore_errors=True)
+		os.makedirs(annotation_dir)
+
 	print("Deleting the pheWAS_dir if it exists and creating a new pheWAS_dir")
 	shutil.rmtree(pheWAS_dir, ignore_errors=True)
 	os.makedirs(pheWAS_dir)
@@ -1162,14 +1183,10 @@ def main():
 					upstream=upstream)
 
 	if annotate:
-		functional_annotation_dir = dir_path + '/functional_annotation'
-		
-		print('deleting and recreating old functional_annotation_dir (if it exists)')
-		shutil.rmtree(functional_annotation_dir, ignore_errors=True)
-		os.makedirs(functional_annotation_dir)
-
-		annotate_function(top_results = top_results, 
-							out_dir = functional_annotation_dir)
+		annotateVariantsAndGenes(top_results = top_results,
+								variant_fields = variant_fields,
+								gene_fields = gene_fields,
+								out_dir = annotation_dir)
 
 	print('PheWAS finished, find all results and intermediate files in: ' + directory_name)
 
