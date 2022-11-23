@@ -18,6 +18,7 @@ python3 ~/pype/pype/run_phewas.py \
   --sample_threshold 100 \
   --covariates ~/pype/test_data/input_ex/test_covariates.tsv \
   --gene_file ~/pype/pype/cached/hg19_gene_list \
+  --annotate \
   # --reuse_genos ~/pype/test_data/geno_phewas_$1/geno \
   # --reuse_raw ~/pype/test_data/geno_phewas_$1/raw \
   # --reuse_phenotypes ~/pype/test_data/geno_phewas_$1/pheno \
