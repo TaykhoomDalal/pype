@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python3 ~/pype/pype/full_pheWAS_pipeline.py \
+python3 ~/pype/pype/run_phewas.py \
   --ukbiobank_url https://biobank.ndph.ox.ac.uk/showcase/label.cgi?id=$1 \
   --ukbiobank_phenotype_file ~/pype/test_data/input_ex/test.tab \
   --bfiles_directory ~/pype/test_data/input_ex/test_bfiles \
