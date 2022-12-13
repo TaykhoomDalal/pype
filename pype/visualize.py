@@ -13,18 +13,18 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from utility_funcs import multiple_testing_correction, annotate_genes
 
-def plot_significant_categories(idx_sig_cats, out_file, title, phewas_results, sig_thresh, annotate, N, cmp_orig_betas, transparency, color_map):
+def plot_significant_categories(idx_sig_cats, out_file, title, phewas_results, sig_thresh, annotate, N, cmp_orig_betas, transparency, color_map, output_format, dpi):
 	# for each category in the significant categories
 	for cat, _ in idx_sig_cats:
 		
-		output_file_cat = out_file.rsplit('.', 1)[0] + '_' + cat + '.png'
+		output_file_cat = out_file.rsplit('.', 1)[0] + '_' + cat + '.' + out_file.rsplit('.', 1)[1]
 
 		title_cat = title + ' - ' + cat
 		data_cat = phewas_results.loc[phewas_results['Category'] == cat]
 
-		manhattan_plot(data_cat, sig_thresh, 0, 1, title_cat, output_file_cat, cat, annotate, plt_top_cat = False, N = N, compare_orig_betas = cmp_orig_betas, transparency = transparency, pheno_color = color_map[cat])
+		manhattan_plot(data_cat, sig_thresh, 0, 1, title_cat, output_file_cat, cat, annotate, plt_top_cat = False, N = N, compare_orig_betas = cmp_orig_betas, transparency = transparency, pheno_color = color_map[cat], output_format = output_format, dpi = dpi)
 
-def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, annotate, plt_top_cat, N, compare_orig_betas, transparency, pheno_color):
+def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, annotate, plt_top_cat, N, compare_orig_betas, transparency, pheno_color, output_format, dpi):
 	"""
 	Function to plot manhattan plots from PheWAS results
 	"""
@@ -90,7 +90,7 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	if plt_top_cat:
 		# sort the 
 
-		plot_significant_categories(indices_of_significant_cats, output_file, title, phewas_results.sort_values(by='Category', key = sorter), sig, annotate, N, compare_orig_betas, transparency, color_map)
+		plot_significant_categories(indices_of_significant_cats, output_file, title, phewas_results.sort_values(by='Category', key = sorter), sig, annotate, N, compare_orig_betas, transparency, color_map, output_format, dpi)
 	
 	if outlier_removed_phewas_results.empty:
 		print('No significant results found for this phenotype')
@@ -261,10 +261,10 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 		adjust_text(texts, arrowprops=dict(arrowstyle="->", color='black', lw=0.2))
 
 	# finally save the figure
-	plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
+	plt.savefig(output_file, bbox_inches ='tight', format = output_format, dpi = dpi)
 	plt.close()
 
-def category_enrichment_plot(phewas_results, sig,title, output_file):
+def category_enrichment_plot(phewas_results, sig,title, output_file, output_format, dpi):
 	
 	print('Plotting bar plot for %s' % output_file)
 
@@ -322,10 +322,10 @@ def category_enrichment_plot(phewas_results, sig,title, output_file):
 	plt.tight_layout()
 	plt.title(title)
 	
-	plt.savefig(output_file, bbox_inches ='tight', dpi = 300)
+	plt.savefig(output_file, bbox_inches ='tight', format = output_format, dpi = dpi)
 	plt.close()
 
-def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_genes, annotate, transparency, compare_orig_betas, logp_low, logp_high, beta_low, beta_high):
+def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_genes, annotate, transparency, compare_orig_betas, logp_low, logp_high, beta_low, beta_high, output_format, dpi):
 
 	# make a volcano plot for each independent variable that was tested
 	ind_vars = phewas_results['Independent_Var'].unique()
@@ -445,7 +445,7 @@ def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_ge
 			adjust_text(texts, arrowprops=dict(arrowstyle="->", color='black', lw=0.2))
 
 		plt.title(ind_title)
-		plt.savefig(output_base_name + '_' + ind_var + ext, bbox_inches ='tight', dpi = 300)
+		plt.savefig(output_base_name + '_' + ind_var + ext, bbox_inches ='tight', format = output_format, dpi = dpi)
 		plt.close()
 
 def createDirectory(directory, clear):
@@ -489,7 +489,6 @@ def main():
 	parser.add_argument('--phewas_results', help = "Input PheWAS results file", required=True, type = str)
 	parser.add_argument('--directory_name', help = "Name of the directory to save the plots in", required=True, type = str)
 	parser.add_argument('--output_prefix', help = "Prefix for output files", required = True, type = str)
-	parser.add_argument('--output_extension', help = "Extension for output files", required = True, choices = [".png", ".jpg", ".jpeg"], type = str)
 	parser.add_argument('--phewas_type', help = "Whether the PheWAS was run with genotypes or phenotypes as the independent variables", required = True, choices = ["genotype", "phenotype"], type = str)
 
 	# Optional Miscellaneous Arguments
@@ -511,6 +510,9 @@ def main():
 	parser.add_argument('--annotate', help = "Add annotations to the manhattan or volcano plots", required = False, default = False, action = 'store_true')
 	parser.add_argument('--transparency', help = "Transparency of points", required = False, default = 0.75, type = float)
 	parser.add_argument('--color_map', help = "Seaborn color map to use", required = False, default = 'rainbow', type = str)
+	parser.add_argument('--dpi', help = "DPI of the output plots", required = False, default = 600, type = int)
+	parser.add_argument('--output_extension', help = "Extension for output files", required = True, default = '.png', choices = [".png", ".jpg", ".svg", ".pdf"], type = str)
+	parser.add_argument('--output_format', help = "Format of the output plots", required = False, default = 'png', choices = ['png', 'jpg', 'svg', 'pdf'], type = str)
 
 	# Manhattan Plot Specific
 	parser.add_argument('--plot_manhattan', help = "Plot the manhattan plot", required = False, default = False, action = 'store_true')
@@ -545,7 +547,6 @@ def main():
 	phewas_results = args.phewas_results
 	directory_name = args.directory_name
 	output_prefix = args.output_prefix
-	output_extension = args.output_extension
 	phewas_type = args.phewas_type
 
 	# Optional Miscellaneous Arguments
@@ -569,6 +570,9 @@ def main():
 	annotate = args.annotate
 	transparency = args.transparency
 	color_map = args.color_map
+	dpi = args.dpi
+	output_extension = args.output_extension
+	output_format = args.output_format
 
 	# Manhattan Plot Specific
 	plot_manhattan = args.plot_manhattan
@@ -833,7 +837,9 @@ def main():
 						N = annotate_top_N_manhattan, 
 						compare_orig_betas = compare_original_betas, 
 						transparency = transparency,
-						pheno_color = color_map)
+						pheno_color = color_map,
+						output_format = output_format,
+						dpi = dpi)
 
 	if plot_category_enrichment:
 
@@ -843,8 +849,9 @@ def main():
 		category_enrichment_plot(phewas_results = outlier_removed, 
 								sig = significance_level, 
 								title = category_enrichment_title, 
-								output_file = category_enrichment_agg_dir + '/' + output_prefix + output_extension)
-
+								output_file = category_enrichment_agg_dir + '/' + output_prefix + output_extension,
+								output_format = output_format,
+								dpi = dpi)
 
 	if plot_volcano:
 
@@ -863,7 +870,9 @@ def main():
 						logp_low = logp_lower_outlier_thresh_volcano,
 						logp_high = logp_upper_outlier_thresh_volcano,
 						beta_low = beta_lower_outlier_val,
-						beta_high = beta_upper_outlier_val)
+						beta_high = beta_upper_outlier_val,
+						output_format = output_format,
+						dpi = dpi)
 						
 	if plot_phewas_categories_separately:
 		for category, plot_info in phewas_categories_map.items():
@@ -885,15 +894,18 @@ def main():
 								N = annotate_top_N_manhattan, 
 								compare_orig_betas = compare_original_betas, 
 								transparency = transparency,
-								pheno_color = color_map)
+								pheno_color = color_map,
+								output_format = output_format,
+								dpi = dpi)
 
 			if plot_category_enrichment:
 				print('Plotting %s bar plot' % (category))
 				category_enrichment_plot(phewas_results = predictor_specific, 
 								sig = significance_level, 
 								title = plot_info[CATEGORY_ENRICHMENT][TITLE], 
-								output_file = plot_info[CATEGORY_ENRICHMENT][FILE])
-
+								output_file = plot_info[CATEGORY_ENRICHMENT][FILE],
+								output_format = output_format,
+								dpi = dpi)
 			if plot_volcano:
 				print('Plotting %s volcano plot' % (category))
 				volcano_plot(phewas_results = predictor_specific, 
@@ -909,7 +921,9 @@ def main():
 							logp_low = logp_lower_outlier_thresh_volcano,
 							logp_high = logp_upper_outlier_thresh_volcano,
 							beta_low = beta_lower_outlier_val,
-							beta_high = beta_upper_outlier_val)
+							beta_high = beta_upper_outlier_val,
+							output_format = output_format,
+							dpi = dpi)
 
 
 if __name__ == '__main__':
