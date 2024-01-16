@@ -70,6 +70,10 @@ def main():
 		print("Error: You must provide at least one MR test to run")
 		exit()
 
+	if cache_all_studies and all_studies_path is None:
+		print("Error: You must provide a path where the studies from OpenGWAS will be cached")
+		exit()
+
 	# ----------------------------------------------------------------------------------------- #
 	
 	# --------------------------------------SETUP MR CODE-------------------------------------- #
@@ -79,7 +83,9 @@ def main():
 
 	# if the user wants to re-cache all studies
 	if cache_all_studies:
+		print("Caching all studies in OpenGWAS")
 		mr_utils.cache_all_studies()
+		print("Finished caching all studies in OpenGWAS")
 	
 	# if the user wants to change the similarity function
 	similarity_func = mr_utils.get_similarity_func(similarity_func)
