@@ -202,8 +202,16 @@ def annotateVariantsAndGenes(top_results, variant_fields, gene_fields, out_dir):
 					gene_json = mg.query(gene, field = gene_fields)
 
 					if gene_json is not None:
-						outfile.write('\nHere is some information about gene {}, which was found to be close to this variant:\n\n'.format(gene))
-						pprint.pprint(gene_json, stream = outfile)
+
+						# Extract the top hit
+						top_hit = gene_json['hits'][0]
+
+						# Print the result
+						if 'summary' in top_hit:
+							outfile.write('\nHere is some information about gene {}, which was found to be close to this variant:\n\n'.format(gene))
+							outfile.write(top_hit['summary'] + '\n')
+						else:
+							outfile.write('Unfortunately, no summary information could be found for this gene.')
 					else:
 						outfile.write('Unfortunately, no summary information could be found for this gene.')
 			else:
