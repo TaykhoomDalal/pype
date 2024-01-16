@@ -1,4 +1,5 @@
 import re
+import os
 import argparse
 import requests
 import pandas as pd
@@ -41,13 +42,13 @@ def main():
 		soup = BeautifulSoup(html, 'html.parser')
 		
 		if singular == "True":
-			ARROW = unescape("&#9204;")
+			ARROW = unescape("&#9205;")
 
 			# this is bad but it works - basically find the section of the html document where the category exists
 			# based on observation, it always comes right after a \n, so split on that, and take the second element,
 			# since the first element contains the Catgory X words, and the second element contains the category
 			# then split on the arrow (if it exists) and take the first element, removing any leading or trailing whitespace
-			category_name = soup.find("div", class_="main").text.split('\n')[1].split(ARROW)[0].strip()
+			category_name = soup.find("div", class_="main").text.split('\n')[1].split(ARROW)[-1].strip()
 
 			df['Category'] = category_name
 		else:
@@ -76,6 +77,16 @@ def main():
 		aggregate_results = pd.concat([aggregate_results, df])
 
 	aggregate_results = aggregate_results.drop(columns = ['Bonferroni_correction'], axis = 1, errors='ignore')
+	
+	# check to see if the directory for the aggregate file exists
+	if not os.path.exists(os.path.dirname(aggregate_file)):
+
+		print('Creating directory for aggregate results file since it does not exist')
+
+		os.makedirs(os.path.dirname(aggregate_file))
+
+		print('Finished creating directory for aggregate results file\n')
+	
 	aggregate_results.to_csv(aggregate_file, sep='\t', index=False)
 
 	print('Finished writing aggregate results file')

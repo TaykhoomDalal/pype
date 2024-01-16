@@ -41,7 +41,6 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	# reset the index and sort by the log pvalues so largest will be at the right end of the plot
 	medians = outlier_removed_phewas_results.loc[outlier_removed_phewas_results["-log(p)"] >= sig].groupby('Category')["-log(p)"].mean().reset_index().sort_values(by="-log(p)").reset_index(drop=True)
 
-
 	sig_cats = medians['Category'].values
 
 	# don't forget to re-add the categories that have no significant results
@@ -490,7 +489,7 @@ def main():
 	parser.add_argument('--directory_name', help = "Name of the directory to save the plots in", required=True, type = str)
 	parser.add_argument('--output_prefix', help = "Prefix for output files", required = True, type = str)
 	parser.add_argument('--phewas_type', help = "Whether the PheWAS was run with genotypes or phenotypes as the independent variables", required = True, choices = ["genotype", "phenotype"], type = str)
-
+	
 	# Optional Miscellaneous Arguments
 	parser.add_argument('--mapping', help = "File containing mapping of old categories to new ones (should be pandas DataFrame)", required=False, default = None, type = str)
 	parser.add_argument('--clear_old_files', help = "Clear old files", required = False, default = False, action = 'store_true')
@@ -511,7 +510,6 @@ def main():
 	parser.add_argument('--transparency', help = "Transparency of points", required = False, default = 0.75, type = float)
 	parser.add_argument('--color_map', help = "Seaborn color map to use", required = False, default = 'rainbow', type = str)
 	parser.add_argument('--dpi', help = "DPI of the output plots", required = False, default = 600, type = int)
-	parser.add_argument('--output_extension', help = "Extension for output files", required = True, default = '.png', choices = [".png", ".jpg", ".svg", ".pdf"], type = str)
 	parser.add_argument('--output_format', help = "Format of the output plots", required = False, default = 'png', choices = ['png', 'jpg', 'svg', 'pdf'], type = str)
 
 	# Manhattan Plot Specific
@@ -571,8 +569,8 @@ def main():
 	transparency = args.transparency
 	color_map = args.color_map
 	dpi = args.dpi
-	output_extension = args.output_extension
 	output_format = args.output_format
+	output_extension = "." + output_format
 
 	# Manhattan Plot Specific
 	plot_manhattan = args.plot_manhattan
