@@ -185,15 +185,15 @@ def annotateVariantsAndGenes(top_results, variant_fields, gene_fields, out_dir):
 
 			if not pd.isnull(genes):
 
-				outfile.write('The genes found associated with this variant are: ' + genes + '\n')
+				outfile.write('The genes found associated with this variant are: ' + genes + '\n\n')
 				
 				variant_json = mv.getvariant(rsID, fields = variant_fields)
 
 				if variant_json is not None:
-					outfile.write('\nHere is some information about the variant that you requested:\n\n')
+					outfile.write('Here is some information about the variant that you requested:\n\n')
 					pprint.pprint(variant_json, stream = outfile)
 				else:
-					outfile.write('Unfortunately, no information could be found in the specified databases for this variant.')
+					outfile.write('Unfortunately, no information could be found in the specified databases for this variant.\n')
 
 				genes = genes.split(', ')
 
@@ -211,16 +211,16 @@ def annotateVariantsAndGenes(top_results, variant_fields, gene_fields, out_dir):
 							outfile.write('\nHere is some information about gene {}, which was found to be close to this variant:\n\n'.format(gene))
 							outfile.write(top_hit['summary'] + '\n')
 						else:
-							outfile.write('Unfortunately, no summary information could be found for this gene.')
+							outfile.write('\nUnfortunately, no summary information could be found for this gene.')
 					else:
-						outfile.write('Unfortunately, no summary information could be found for this gene.')
+						outfile.write('\nUnfortunately, no summary information could be found for this gene.')
 			else:
 				variant_json = mv.getvariant(rsID, fields = variant_fields)
 
 				if variant_json is not None:
-					outfile.write('\nHere is some information about the variant that you requested:\n\n')
+					outfile.write('Here is some information about the variant that you requested:\n\n')
 					pprint.pprint(variant_json, stream = outfile)
 				else:
 					outfile.write('Unfortunately, no information could be found in the specified databases for this variant.\n')
 
-				outfile.write('Unfortunately, no genes were found to be close to this variant.')
+				outfile.write('\nUnfortunately, no genes were found to be close to this variant.')
