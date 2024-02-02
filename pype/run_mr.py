@@ -13,7 +13,21 @@ def main():
 	parser.add_argument('--outcome_phenotype', help = 'Name of the phenotype that the outcome variants are associated with', required = False, default = None, type = str)
 	parser.add_argument('--traits', help = 'List of traits to search for in OpenGWAS to use for MR', required = False, type = str, action ='append', nargs = '+')
 	parser.add_argument('--output', help ='File to store output of MR', required = True, type = str)
-	parser.add_argument('--mr_type', help = 'MR test to run', choices = ['ivw', 'egger', 'simple_median'], required = True, type = str, action='append')
+	parser.add_argument('--mr_type', help = 'MR test to run', choices = ['ivw', 'egger', 'simple_median', 'weighted_median', 'penalized_weighted_median'], required = True, type = str, action='append')
+	
+	# Optional if headers are standard with what the script expects
+	parser.add_argument('--exp_rsID', help = 'Name of the column indicating the rsID for the exposure variants', required = False, default = 'rsID', type = str)
+	parser.add_argument('--out_rsID', help = 'Name of the column indicating the rsID for the outcome variants', required = False, default = 'rsID', type = str)
+	parser.add_argument('--exp_CHR', help = 'Name of the column indicating the chromosome for the exposure variants', required = False, default = 'CHR', type = str)
+	parser.add_argument('--out_CHR', help = 'Name of the column indicating the chromosome for the outcome variants', required = False, default = 'CHR', type = str)
+	parser.add_argument('--exp_B', help = 'Name of the column indicating the beta for the exposure variants', required = False, default = 'BETA', type = str)
+	parser.add_argument('--out_B', help = 'Name of the column indicating the beta for the outcome variants', required = False, default = 'BETA', type = str)
+	parser.add_argument('--exp_P', help = 'Name of the column indicating the p-value for the exposure variants', required = False, default = 'P', type = str)
+	parser.add_argument('--out_P', help = 'Name of the column indicating the p-value for the outcome variants', required = False, default = 'P', type = str)
+	parser.add_argument('--exp_SE', help = 'Name of the column indicating the standard error for the exposure variants', required = False, default = 'SE', type = str)
+	parser.add_argument('--out_SE', help = 'Name of the column indicating the standard error for the outcome variants', required = False, default = 'SE', type = str)
+	parser.add_argument('--exp_N', help = 'Name of the column indicating the number of samples for the exposure variants', required = False, default = 'N', type = str)
+	parser.add_argument('--out_N', help = 'Name of the column indicating the number of samples for the outcome variants', required = False, default = 'N', type = str)
 
 	# Optional Arguments for MR
 	parser.add_argument('--similarity_func', help = 'Similarity function to use for matching trait strings in OpenGWAS', choices = ['jaccard', 'levenshtein'], default = 'jaccard', required = False, type = str)
@@ -32,6 +46,20 @@ def main():
 	traits = args.traits
 	output = args.output
 	mr_type = args.mr_type
+
+	# Headers
+	exp_rsID = args.exp_rsID
+	out_rsID = args.out_rsID
+	exp_CHR = args.exp_CHR
+	out_CHR = args.out_CHR	
+	exp_B = args.exp_B
+	out_B = args.out_B
+	exp_P = args.exp_P
+	out_P = args.out_P
+	exp_SE = args.exp_SE
+	out_SE = args.out_SE
+	exp_N = args.exp_N
+	out_N = args.out_N
 
 	# Optional Arguments
 	similarity_func = args.similarity_func
@@ -103,7 +131,16 @@ def main():
 		for index, exposure_pheno in enumerate(exposure_phenotypes):
 
 			# read in the exposure variants
-			exposure_variants_i = pd.read_csv(exposure_variants[index], sep = '\t')
+			exposure_variants_i = pd.read_csv(exposure_variants[index], sep = None, engine='python')
+
+			if exposure_variants_i.empty:
+				print("File {} associated with exposure phenotype {} is empty. Skipping.".format(exposure_variants[index], exposure_pheno))
+				continue
+			else:
+				if exp_N in exposure_variants_i.columns:
+					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_B, exp_P, exp_SE, exp_N]]
+				else:
+					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_B, exp_P, exp_SE]]
 
 			temp_data = []
 			for trait_family in traits:
@@ -134,22 +171,40 @@ def main():
 			mr_results = pd.DataFrame(temp_data, columns = ['MR_Method', 'Outcome', 'P_value', 'Effect_Size', 'Standard_Error', 'Number_SNPs'])
 
 			# write the results to a file
-			mr_results.to_csv(output_base + '_' + exposure_pheno + '.' + output_ext, sep = '\t', index = False)
+			mr_results.to_csv(output_base + '_' + exposure_pheno + '.' + output_ext, sep = None, index = False)
 
 	elif outcome_variants != None:
 		
+		# read in the outcome variants
+		outcome_variants_d = pd.read_csv(outcome_variants, sep = None, engine='python')
+
+		if outcome_variants_d.empty:
+			print("File {} associated with outcome phenotype {} is empty. Exiting.".format(outcome_variants, outcome_phenotype))
+			exit()
+		else:
+			if out_N in outcome_variants_d.columns:
+				outcome_variants_d = outcome_variants_d[[out_rsID, out_CHR, out_B, out_P, out_SE, out_N]]
+			else:
+				outcome_variants_d = outcome_variants_d[[out_rsID, out_CHR, out_B, out_P, out_SE]]
+	
 		for index, exposure_pheno in enumerate(exposure_phenotypes):
 			
 			print('Running MR ({}) for Exposure ({}) against Outcome ({})'.format(", ".join(mr_type), exposure_pheno, outcome_phenotype))
 
 			# read in the exposure variants
-			exposure_variants_i = pd.read_csv(exposure_variants[index], sep = '\t')
+			exposure_variants_i = pd.read_csv(exposure_variants[index], sep = None, engine='python')
 
-			# read in the outcome variants
-			outcome_variants = pd.read_csv(outcome_variants, sep = '\t')
+			if exposure_variants_i.empty:
+				print("File {} associated with exposure phenotype {} is empty. Skipping.".format(exposure_variants[index], exposure_pheno))
+				continue
+			else:
+				if exp_N in exposure_variants_i.columns:
+					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_B, exp_P, exp_SE, exp_N]]
+				else:
+					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_B, exp_P, exp_SE]]
 
 			# harmonize the exposure and outcome variants
-			harmonized_data = mr_utils.harmonize(exposure_variants_i, outcome_variants, '_' + exposure_pheno, '_' + outcome_phenotype)
+			harmonized_data = mr_utils.harmonize(exposure_variants_i, outcome_variants_d, '_' + exposure_pheno, '_' + outcome_phenotype)
 
 			# run MR
 			mr_res = mr.run_mr(mr_type, harmonized_data, 'BETA_' + exposure_pheno, 'BETA_' + outcome_phenotype, 'SE_' + exposure_pheno, 'SE_' + outcome_phenotype)
@@ -164,7 +219,7 @@ def main():
 					temp_data.append([mr_type_i, outcome_phenotype, pval, beta, std_err, harmonized_data.shape[0]])
 
 			# convert the results to a dataframe
-			mr_results = pd.DataFrame(data = temp_data, columns = ['Outcome', 'P_value', 'Effect_Size', 'Standard_Error', 'Number_SNPs'])
+			mr_results = pd.DataFrame(data = temp_data, columns = ['MR_Method', 'Outcome', 'P_value', 'Effect_Size', 'Standard_Error', 'Number_SNPs'])
 
 			# write the results to a file
 			mr_results.to_csv(output_base + '_' + exposure_pheno + '.' + output_ext, sep = '\t', index = False)
