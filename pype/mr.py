@@ -36,6 +36,10 @@ def run_mr(mr_type, harmonized_data, beta_exp, beta_out, se_exp, se_out):
             mr_results[method] = run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out)
         elif method == 'simple_median':
             mr_results[method] = run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+        elif method == 'weighted_median':
+            mr_results[method] = run_mr_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+        elif method == 'penalized_weighted_median':
+            mr_results[method] = run_mr_penalized_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
         elif method == 'egger':
             mr_results[method] = run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out)
         
@@ -63,9 +67,7 @@ def run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out):
     list
         List containing the model-pvalue, beta, and standard error.
     '''
-
-
-
+    
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     data = data.rename(columns={beta_exp : 'BETA_EXP', 
                                 beta_out : 'BETA_OUT', 
@@ -75,7 +77,7 @@ def run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out):
     exp_beta_len = data['BETA_EXP'].shape[0]
     
     if exp_beta_len < 2:
-        print('Found {} variants. Need at least 2. Exiting MR.'.format(data[['BETA_EXP']].shape[0]))
+        print('Found {} variants. Need at least 2. Exiting MR IVW.'.format(data[['BETA_EXP']].shape[0]))
         return None
     
     f = 'BETA_OUT ~ -1 + BETA_EXP'
@@ -128,7 +130,7 @@ def run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out):
     exp_beta_len = data['BETA_EXP'].shape[0]
     
     if exp_beta_len < 3:
-        print('Found {} variants. Need at least 3. Exiting MR.'.format(data[['BETA_EXP']].shape[0]))
+        print('Found {} variants. Need at least 3. Exiting MR Egger.'.format(data[['BETA_EXP']].shape[0]))
         return None
     
     change_0_to_1 = lambda x: np.sign(x.replace(0,1))
@@ -180,12 +182,13 @@ def run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, nb
         Name of the column containing the exposure standard errors.
     se_out : str    
         Name of the column containing the outcome standard errors.
+    nboot : int
+        Number of bootstrap replications to calculate the standard error.
 
     Returns
     -------
     list
         List containing the model-pvalue, beta, and standard error.
-
     '''
     
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
@@ -198,7 +201,7 @@ def run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, nb
     exp_beta_len = data['BETA_EXP'].shape[0]
     
     if exp_beta_len < 3:
-        print('Found {} variants. Need at least 3. Exiting MR.'.format(data[['BETA_EXP']].shape[0]))
+        print('Found {} variants. Need at least 3. Exiting MR Simple Median.'.format(data[['BETA_EXP']].shape[0]))
         return None
     
     beta_iv = np.array(data['BETA_OUT'] / data['BETA_EXP'])
@@ -206,19 +209,131 @@ def run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, nb
     inv_rep_len = np.repeat(1/exp_beta_len, exp_beta_len)
     
     beta = weighted_median(beta_iv, inv_rep_len)
-    standard_error = weighted_median_bootstrap(data['BETA_EXP'], data['BETA_OUT'], data['SE_EXP'], data['SE_OUT'], inv_rep_len, nboot)
-    model_pvalue = 2*(1 - t.cdf(abs(beta/standard_error), exp_beta_len - 2))
-    
+    standard_error = weighted_median_bootstrap(data['BETA_EXP'].values, data['BETA_OUT'].values, data['SE_EXP'].values, data['SE_OUT'].values, inv_rep_len, nboot)
+    model_pvalue = 2 * (1 - norm.cdf(abs(beta/standard_error)))
     return [model_pvalue, beta, standard_error]
 
-def weighted_median(beta_iv, weights):
+def run_mr_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000):
+    '''
+    Calculate the weighted median MR estimate.
+
+    Parameters
+    ----------
+    harmonized_data : pandas.DataFrame
+        Dataframe containing the harmonized data.
+    beta_exp : str
+        Name of the column containing the exposure effect sizes.
+    beta_out : str
+        Name of the column containing the outcome effect sizes.
+    se_exp : str    
+        Name of the column containing the exposure standard errors.
+    se_out : str    
+        Name of the column containing the outcome standard errors.
+    nboot : int
+        Number of bootstrap replications to calculate the standard error.
+
+    Returns
+    -------
+    list
+        List containing the model-pvalue, beta, and standard error.
+    '''
+
+    data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
+    
+    data = data.rename(columns={beta_exp : 'BETA_EXP', 
+                                beta_out : 'BETA_OUT', 
+                                se_exp : 'SE_EXP', 
+                                se_out : 'SE_OUT'})
+    
+    exp_beta_len = data['BETA_EXP'].shape[0]
+    
+    if exp_beta_len < 3:
+        print('Found {} variants. Need at least 3. Exiting MR Weighted Median.'.format(data[['BETA_EXP']].shape[0]))
+        return None
+
+    beta_iv = np.array(data['BETA_OUT'] / data['BETA_EXP'])
+    VBj = np.array(((data['SE_OUT'])**2) / (data['BETA_EXP'])**2 + (data['BETA_OUT']**2) * ((data['SE_EXP']**2)) / (data['BETA_EXP'])**4)
+
+    beta = weighted_median(beta_iv, 1/VBj)
+    standard_error = weighted_median_bootstrap(data['BETA_EXP'].values, data['BETA_OUT'].values, data['SE_EXP'].values, data['SE_OUT'].values, 1/VBj, nboot)
+    model_pvalue = 2 * (1 - norm.cdf(abs(beta/standard_error)))
+    return [model_pvalue, beta, standard_error]
+
+def run_mr_penalized_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20):
+    '''
+    Calculate the penalized weighted median MR estimate.
+
+    Parameters
+    ----------
+    harmonized_data : pandas.DataFrame
+        Dataframe containing the harmonized data.
+    beta_exp : str
+        Name of the column containing the exposure effect sizes.
+    beta_out : str
+        Name of the column containing the outcome effect sizes.
+    se_exp : str    
+        Name of the column containing the exposure standard errors.
+    se_out : str    
+        Name of the column containing the outcome standard errors.
+    nboot : int
+        Number of bootstrap replications to calculate the standard error.
+    penalty_con : int
+        Constant term in penalisation.
+
+    Returns
+    -------
+    list
+        List containing the model-pvalue, beta, and standard error.
+    '''
+
+    data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
+    
+    data = data.rename(columns={beta_exp : 'BETA_EXP', 
+                                beta_out : 'BETA_OUT', 
+                                se_exp : 'SE_EXP', 
+                                se_out : 'SE_OUT'})
+    
+    exp_beta_len = data['BETA_EXP'].shape[0]
+    
+    if exp_beta_len < 3:
+        print('Found {} variants. Need at least 3. Exiting MR Weighted Median.'.format(data[['BETA_EXP']].shape[0]))
+        return None
+
+    beta_iv = np.array(data['BETA_OUT'] / data['BETA_EXP'])
+    beta_ivw = np.sum(data['BETA_OUT'] * data['BETA_EXP'] / data['SE_OUT']**2) / np.sum(data['BETA_EXP']**2 / data['SE_OUT']**2)
+    VBj = np.array(((data['SE_OUT'])**2) / (data['BETA_EXP'])**2 + (data['BETA_OUT']**2) * ((data['SE_EXP']**2)) / (data['BETA_EXP'])**4)
+
+    beta_weighted_median = run_mr_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot)
+    penalty = chi2.sf((1/VBj) * (beta_iv - beta_weighted_median[1])**2, df=1)
+    penalized_weights = (1/VBj) * np.minimum(1, penalty * penalty_con)
+
+    beta = weighted_median(beta_iv, penalized_weights)
+    standard_error = weighted_median_bootstrap(data['BETA_EXP'].values, data['BETA_OUT'].values, data['SE_EXP'].values, data['SE_OUT'].values, penalized_weights, nboot)
+    model_pvalue = 2 * (1 - norm.cdf(abs(beta/standard_error)))
+    return [model_pvalue, beta, standard_error]
+
+def weighted_median(b_iv, weights):
     '''
     Calculate the weighted median of a list of numbers.
-    credit:
+    credit: https://github.com/MRCIEU/TwoSampleMR/blob/master/R/mr.R
     '''
-    i = np.argsort(beta_iv)
-    c = np.cumsum(weights[i])
-    return beta_iv[i[np.searchsorted(c, 0.5 * c[-1])]]
+    # Sort b_iv and weights based on b_iv
+    sorted_indices = np.argsort(b_iv)
+    betaIV_order = np.array(b_iv)[sorted_indices]
+    weights_order = np.array(weights)[sorted_indices]
+
+    # Calculate cumulative sum of weights
+    weights_sum = np.cumsum(weights_order) - 0.5 * weights_order
+    weights_sum /= np.sum(weights_order)
+
+    # Find index where cumulative sum is below 0.5
+    below = np.max(np.where(weights_sum < 0.5))
+
+    # Calculate weighted median
+    b = betaIV_order[below] + (betaIV_order[below + 1] - betaIV_order[below]) * \
+        (0.5 - weights_sum[below]) / (weights_sum[below + 1] - weights_sum[below])
+
+    return b
     
 def weighted_median_bootstrap(beta_exp, beta_out, se_exp, se_out, weights, nboot):
     '''
@@ -258,36 +373,3 @@ def weighted_median_bootstrap(beta_exp, beta_out, se_exp, se_out, weights, nboot
 
     
     return np.std(medians)
-    
-def run_mr_median(harmonized_data, beta_exp, beta_out, se_exp, se_out):
-    '''
-    This function runs all the different MR-Median variations including the simple median, the weighted median, and the weighted median with penalization.
-
-    Parameters
-    ----------
-    harmonized_data : pandas dataframe
-        Dataframe containing the harmonized data.
-    beta_exp : string
-        Name of the column containing the effect sizes of the exposure.
-    beta_out : string
-        Name of the column containing the effect sizes of the outcome.
-    se_exp : string
-        Name of the column containing the standard errors of the exposure.
-    se_out : string
-        Name of the column containing the standard errors of the outcome.
-
-    Returns
-    -------
-    '''
-    data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
-    
-    data = data.rename(columns={beta_exp : 'BETA_EXP', 
-                                beta_out : 'BETA_OUT', 
-                                se_exp : 'SE_EXP', 
-                                se_out : 'SE_OUT'})
-    
-    exp_beta_len = data['BETA_EXP'].shape[0]
-    
-    if exp_beta_len < 3:
-        print('Found {} variants. Need at least 3. Exiting MR.'.format(data[['BETA_EXP']].shape[0]))
-        return None

@@ -126,26 +126,30 @@ def find_studies_based_on_traits(traits, similarity, batch_list = None, strip = 
 
 def harmonize(sample1, sample2, suffix1, suffix2):
     
-    # TODO: add more in depth harmonization capabilties
+    # both sample1 and sample2 now have the same order of their columns (rsID, CHR, BETA, P, SE, [OPTIONAL] N) 
 
+    if sample1.columns.size == 5:
+        sample1.columns = ["rsID", "CHR", "BETA", "P", "SE"]
+    else:
+        sample1.columns = ["rsID", "CHR", "BETA", "P", "SE", "N"]
+    
+    if sample2.columns.size == 5:
+        sample2.columns = ["rsID", "CHR", "BETA", "P", "SE"]
+    else:
+        sample2.columns = ["rsID", "CHR", "BETA", "P", "SE", "N"]
+
+    # don't want type errors when merging
     sample1['CHR'] = sample1['CHR'].replace('X', 23).replace('Y', 24)
     sample2['CHR'] = sample2['CHR'].replace('X', 23).replace('Y', 24)
 
-    # drop uneeded chr and pos cols
-    s1 = sample1.drop(['POS'], axis = 1, errors = 'ignore')
-    s2 = sample2.drop(['POS'], axis = 1, errors = 'ignore')
-    
     # merge the two dataframes, ensuring the chromosomes/position as well as alleles are the same
-    merged = pd.merge(s1, s2, on=['rsID', 'CHR'], suffixes = [suffix1, suffix2]) # on=['rsID', 'CHR', 'Non_Effect', 'Effect']
-    
-    # rename the columns (for use with ldsc)
-    # merged = merged.rename(columns = {'Effect': 'A1',
-                                     # 'Non_Effect': 'A2'})
+    merged = pd.merge(sample1, sample2, on=['rsID', 'CHR'], suffixes = [suffix1, suffix2]) # on=['rsID', 'CHR', 'Non_Effect', 'Effect']
     
     # retain only the columns we care about in this order
     if 'N' in sample1.columns or 'N' in sample2.columns:
         merged = merged[['rsID', 'CHR', 'BETA' + suffix1, 'BETA' + suffix2, 'P' + suffix1, 'P' + suffix2, 'SE' + suffix1, 'SE' + suffix2, 'N']]
         
+        # if one of the datasets doesn't have N
         merged['N'] = merged['N'].replace(np.nan, -1)
 
         # drop duplicates, keeping the values with greatest number of samples (if data is available)
@@ -155,7 +159,8 @@ def harmonize(sample1, sample2, suffix1, suffix2):
    
     # if the dataframe is empty, we print an error message
     if merged.empty:
-        print("The dataframe is empty")
+        print("The merged dataframe is empty for {} and {}".format(suffix1, suffix2))
+        exit()
 
     return merged
 
