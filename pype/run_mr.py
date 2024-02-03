@@ -13,7 +13,8 @@ def main():
 	parser.add_argument('--outcome_phenotype', help = 'Name of the phenotype that the outcome variants are associated with', required = False, default = None, type = str)
 	parser.add_argument('--traits', help = 'List of traits to search for in OpenGWAS to use for MR', required = False, type = str, action ='append', nargs = '+')
 	parser.add_argument('--output', help ='File to store output of MR', required = True, type = str)
-	parser.add_argument('--mr_type', help = 'MR test to run', choices = ['ivw', 'egger', 'simple_median', 'weighted_median', 'penalized_weighted_median'], required = True, type = str, action='append')
+	parser.add_argument('--mr_type', help = 'MR test to run', choices = ['ivw', 'egger', 'simple_median', 'weighted_median', 'penalized_weighted_median'], required = False, type = str, action='append')
+	parser.add_argument('--run_all_mr', help = 'Whether or not to run all the MR tests.', required=False, action = 'store_true')
 	
 	# Optional if headers are standard with what the script expects
 	parser.add_argument('--exp_rsID', help = 'Name of the column indicating the rsID for the exposure variants', required = False, default = 'rsID', type = str)
@@ -46,6 +47,7 @@ def main():
 	traits = args.traits
 	output = args.output
 	mr_type = args.mr_type
+	run_all_mr = args.run_all_mr
 
 	# Headers
 	exp_rsID = args.exp_rsID
@@ -94,9 +96,13 @@ def main():
 			print("Error: The exposure and outcome phenotypes cannot be the same")
 			exit()
 
-	if len(mr_type) == 0:
-		print("Error: You must provide at least one MR test to run")
+	if mr_type is None and run_all_mr is False:
+		print("Error: You must provide at least one MR test to run or specify to run all MR tests.")
 		exit()
+
+	if mr_type is not None and run_all_mr is True:
+		print("Warning: You specified to run all MR tests but also specified a specific MR test to run. All MR tests will be run.")
+		mr_type = None
 
 	if cache_all_studies and all_studies_path is None:
 		print("Error: You must provide a path where the studies from OpenGWAS will be cached")
@@ -128,6 +134,11 @@ def main():
 	# if the user wants to run MR against a list of traits
 	if traits is not None:
 		
+		if run_all_mr == True:
+			mr_string = "All Tests"
+		else:
+			mr_string = ", ".join(mr_type)
+
 		for index, exposure_pheno in enumerate(exposure_phenotypes):
 
 			# read in the exposure variants
@@ -155,10 +166,10 @@ def main():
 					for phenotype in external_gwas_data['phenotype'].unique():
 						external_gwas_data_i = external_gwas_data.loc[external_gwas_data['phenotype'] == phenotype].copy()
 						data[phenotype] = mr_utils.harmonize(exposure_variants_i, external_gwas_data_i, '_' + exposure_pheno, '_' + phenotype)
+
+						print('Running MR ({}) for Exposure ({}) against Outcome ({})'.format(mr_string, exposure_pheno, phenotype))
 						
-						print('Running MR ({}) for Exposure ({}) against Outcome ({})'.format(", ".join(mr_type), exposure_pheno, phenotype))
-						
-						mr_res = mr.run_mr(mr_type, data[phenotype], 'BETA_' + exposure_pheno, 'BETA_' + phenotype, 'SE_' + exposure_pheno, 'SE_' + phenotype)
+						mr_res = mr.run_mr(mr_type, data[phenotype], 'BETA_' + exposure_pheno, 'BETA_' + phenotype, 'SE_' + exposure_pheno, 'SE_' + phenotype, run_all_mr)
 
 						for mr_type_i, results in mr_res.items():
 							if results is None:
@@ -187,9 +198,14 @@ def main():
 			else:
 				outcome_variants_d = outcome_variants_d[[out_rsID, out_CHR, out_B, out_P, out_SE]]
 	
+		if run_all_mr == True:
+			mr_string = "All Tests"
+		else:
+			mr_string = ", ".join(mr_type)
+
 		for index, exposure_pheno in enumerate(exposure_phenotypes):
 			
-			print('Running MR ({}) for Exposure ({}) against Outcome ({})'.format(", ".join(mr_type), exposure_pheno, outcome_phenotype))
+			print('Running MR ({}) for Exposure ({}) against Outcome ({})'.format(mr_string, exposure_pheno, outcome_phenotype))
 
 			# read in the exposure variants
 			exposure_variants_i = pd.read_csv(exposure_variants[index], sep = None, engine='python')
@@ -207,7 +223,7 @@ def main():
 			harmonized_data = mr_utils.harmonize(exposure_variants_i, outcome_variants_d, '_' + exposure_pheno, '_' + outcome_phenotype)
 
 			# run MR
-			mr_res = mr.run_mr(mr_type, harmonized_data, 'BETA_' + exposure_pheno, 'BETA_' + outcome_phenotype, 'SE_' + exposure_pheno, 'SE_' + outcome_phenotype)
+			mr_res = mr.run_mr(mr_type, harmonized_data, 'BETA_' + exposure_pheno, 'BETA_' + outcome_phenotype, 'SE_' + exposure_pheno, 'SE_' + outcome_phenotype, run_all_mr)
 
 			temp_data = []
 			for mr_type_i, results in mr_res.items():
