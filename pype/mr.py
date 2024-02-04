@@ -485,10 +485,8 @@ def beta_MODE(BetaIV_in, seBetaIV_in, phi):
     n = len(BetaIV_in)
     s = 0.9 * min(np.std(BetaIV_in, ddof=1), median_abs_deviation(BetaIV_in, scale = 'normal')) / (n**(1/5))
     
-    # Standardised weights
+    # Standardized weights
     weights = seBetaIV_in**-2 / sum(seBetaIV_in**-2)
-    
-    beta_estimates = []
     
     # Define the actual bandwidth
     h = max(0.00000001, s * phi)
@@ -496,7 +494,7 @@ def beta_MODE(BetaIV_in, seBetaIV_in, phi):
     density_result = density(BetaIV_in, h, weights)
 
     # Find the x-value where the y-value (density) is at its maximum
-    max_density_x_value = density_result['x'][density_result['y'] == np.max(density_result['y'])]
+    max_density_x_value = density_result['x'][density_result['y'] == np.max(density_result['y'])][0]
 
     return max_density_x_value
 
