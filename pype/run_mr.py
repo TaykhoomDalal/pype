@@ -1,7 +1,36 @@
+import os
 import mr
+import json
 import mr_utils
 import argparse
 import pandas as pd
+
+def save_presso_extras(presso_file_path, results, presso_args):
+
+	with open(presso_file_path, 'w') as file:
+
+		global_test = results["Global Test"]
+		rssobs, p, p_sig = global_test["RSSobs"], global_test["P_value"], global_test["P_value_significance"]
+		print("MR Presso Global Test:\n\tRSSobs: {}\n\tP_value: {}\n\tP_value Significance: {}".format(rssobs, p, p_sig))
+
+		file.writelines("MR Presso Global Test:\n\tRSSobs: {}\n\tP_value: {}\n\tP_value Significance: {}".format(rssobs, p, p_sig))
+
+		if len(results) > 2:
+			# we have the outlier test and the distortion test or just the outlier test
+			outlier_test = presso_args['outlier_test']
+			distortion_test = presso_args['distortion_test']
+
+			if outlier_test:
+				file.writelines("\n\n")
+				outlier_df = results['Outlier Test']
+				outlier_df.index.name = 'Index'
+				file.write(outlier_df.to_string(header=True))
+
+			if distortion_test:
+				distortion_results = results['Distortion Test']
+				indices, d_coeff, p = ",".join([str(i) for i in distortion_results["Outliers Indices"]]), distortion_results["Distortion Coefficient"], distortion_results["P_value"]
+				file.writelines("\n\nMR Presso Distortion Test:\n\tOutlier Indices: {}\n\tDistortion Coefficient: {}\n\tP_value: {}".format(indices, d_coeff, p.values[0]))
+
 
 def main():
 	parser = argparse.ArgumentParser(description="Run Mendelian Randomization analyses with the variants used in the PheWAS")
@@ -13,9 +42,12 @@ def main():
 	parser.add_argument('--outcome_phenotype', help = 'Name of the phenotype that the outcome variants are associated with', required = False, default = None, type = str)
 	parser.add_argument('--traits', help = 'List of traits to search for in OpenGWAS to use for MR', required = False, type = str, action ='append', nargs = '+')
 	parser.add_argument('--output', help ='File to store output of MR', required = True, type = str)
-	parser.add_argument('--mr_type', help = 'MR test to run', choices = ['ivw', 'egger', 'simple_median', 'weighted_median', 'penalized_weighted_median'], required = False, type = str, action='append')
+	parser.add_argument('--mr_type', help = 'MR test to run', choices = ['ivw', 'egger', 'simple_median', 
+																		'weighted_median', 'penalized_weighted_median',
+																		'simple_mode', 'simple_mode_nome', 'weighted_mode',
+																		'penalized_mode', 'weighted_mode_nome', 'presso'], required = False, type = str, action='append')
 	parser.add_argument('--run_all_mr', help = 'Whether or not to run all the MR tests.', required=False, action = 'store_true')
-	
+
 	# Optional if headers are standard with what the script expects
 	parser.add_argument('--exp_rsID', help = 'Name of the column indicating the rsID for the exposure variants', required = False, default = 'rsID', type = str)
 	parser.add_argument('--out_rsID', help = 'Name of the column indicating the rsID for the outcome variants', required = False, default = 'rsID', type = str)
@@ -108,6 +140,17 @@ def main():
 		print("Error: You must provide a path where the studies from OpenGWAS will be cached")
 		exit()
 
+	try:
+		# Attempt to open the JSON file (is in current directory)
+		with open("mr_args.json", 'r') as file:
+			# Load its content as a Python dictionary
+			mr_args = json.load(file)
+			print("JSON data loaded successfully.")
+	except FileNotFoundError:
+		print("mr_args.json file not found. Please copy the file from the github")
+	except json.JSONDecodeError:
+		print("Error decoding JSON from mr_args.json file. Please fix the errors in the JSON file and rerun this script.")
+
 	# ----------------------------------------------------------------------------------------- #
 	
 	# --------------------------------------SETUP MR CODE-------------------------------------- #
@@ -169,15 +212,26 @@ def main():
 
 						print('Running MR ({}) for Exposure ({}) against Outcome ({})'.format(mr_string, exposure_pheno, phenotype))
 						
-						mr_res = mr.run_mr(mr_type, data[phenotype], 'BETA_' + exposure_pheno, 'BETA_' + phenotype, 'SE_' + exposure_pheno, 'SE_' + phenotype, run_all_mr)
+						mr_res = mr.run_mr(mr_type, data[phenotype], 'BETA_' + exposure_pheno, 'BETA_' + phenotype, 'SE_' + exposure_pheno, 'SE_' + phenotype, mr_args, run_all_mr)
 
 						for mr_type_i, results in mr_res.items():
 							if results is None:
 								print('{} MR failed for Exposure ({}) against Outcome ({})'.format(mr_type_i.capitalize(), exposure_pheno, phenotype))
 							else:
-								pval, beta, std_err, *additional = results
 
-								temp_data.append([mr_type_i, phenotype, pval, beta, std_err, data[phenotype].shape[0]])
+								if mr_type_i == 'PRESSO':
+
+									presso_extras = output_base + '_' + exposure_pheno + '_presso_extras.txt'
+									save_presso_extras(presso_file_path = presso_extras, results = results, presso_args = mr_args['PRESSO'])
+
+									results = results['MR_RESULTS']
+
+									for i in range(len(results)):
+										temp_data.append([results[i][0], outcome_phenotype, results[i][1][0], results[i][2][0], results[i][3][0], data[phenotype].shape[0]])
+								
+								else:
+									pval, beta, std_err, *additional = results
+									temp_data.append([mr_type_i, phenotype, pval, beta, std_err, data[phenotype].shape[0]])
 			
 			mr_results = pd.DataFrame(temp_data, columns = ['MR_Method', 'Outcome', 'P_value', 'Effect_Size', 'Standard_Error', 'Number_SNPs'])
 
@@ -223,16 +277,26 @@ def main():
 			harmonized_data = mr_utils.harmonize(exposure_variants_i, outcome_variants_d, '_' + exposure_pheno, '_' + outcome_phenotype)
 
 			# run MR
-			mr_res = mr.run_mr(mr_type, harmonized_data, 'BETA_' + exposure_pheno, 'BETA_' + outcome_phenotype, 'SE_' + exposure_pheno, 'SE_' + outcome_phenotype, run_all_mr)
+			mr_res = mr.run_mr(mr_type, harmonized_data, 'BETA_' + exposure_pheno, 'BETA_' + outcome_phenotype, 'SE_' + exposure_pheno, 'SE_' + outcome_phenotype, mr_args, run_all_mr)
 
 			temp_data = []
 			for mr_type_i, results in mr_res.items():
 				if results is None:
 					print('{} MR failed for Exposure ({}) against Outcome ({})'.format(mr_type_i.capitalize(), exposure_pheno, outcome_phenotype))
 				else:
-					pval, beta, std_err, *additional = results
 
-					temp_data.append([mr_type_i, outcome_phenotype, pval, beta, std_err, harmonized_data.shape[0]])
+					if mr_type_i == 'PRESSO':
+			
+						presso_extras = output_base + '_' + exposure_pheno + '_presso_extras.txt'
+						save_presso_extras(presso_file_path = presso_extras, results = results, presso_args = mr_args['PRESSO'])
+
+						results = results['MR_RESULTS']
+
+						for i in range(len(results)):
+							temp_data.append([results[i][0], outcome_phenotype, results[i][1][0], results[i][2][0], results[i][3][0], harmonized_data.shape[0]])
+					else:
+						pval, beta, std_err, *additional = results
+						temp_data.append([mr_type_i, outcome_phenotype, pval, beta, std_err, harmonized_data.shape[0]])
 
 			# convert the results to a dataframe
 			mr_results = pd.DataFrame(data = temp_data, columns = ['MR_Method', 'Outcome', 'P_value', 'Effect_Size', 'Standard_Error', 'Number_SNPs'])

@@ -1,0 +1,57 @@
+{
+    "Simple Median" : 
+    {
+        "nboot" : 1000
+    },
+    "Weighted Median" :
+    {
+        "nboot" : 1000
+    },
+    "Penalized Weighted Median" :
+    {
+        "nboot" : 1000,
+        "penalty_con" : 20
+    },
+    "Simple Mode" :
+    {
+        "nboot" : 1000, 
+        "penalty_con" : 20, 
+        "phi" : 1, 
+        "alpha" : 0.05
+    },
+    "Simple Mode (NOME)" :
+    {
+        "nboot" : 1000, 
+        "penalty_con" : 20, 
+        "phi" : 1, 
+        "alpha" : 0.05
+    },
+    "Weighted Mode" :
+    {
+        "nboot" : 1000, 
+        "penalty_con" : 20, 
+        "phi" : 1, 
+        "alpha" : 0.05
+    },
+    "Penalized Mode" :
+    {
+        "nboot" : 1000, 
+        "penalty_con" : 20, 
+        "phi" : 1, 
+        "alpha" : 0.05
+    },
+    "Weighted Mode (NOME)" : 
+    {
+        "nboot" : 1000, 
+        "penalty_con" : 20, 
+        "phi" : 1, 
+        "alpha" : 0.05
+    },
+    "PRESSO" :
+    {
+        "outlier_test" : true, 
+        "distortion_test" : true, 
+        "sigthresh" : 0.05, 
+        "nbDist" : 1000
+    }
+}
