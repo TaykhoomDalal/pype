@@ -2,9 +2,9 @@
 A Python Package for PheWAS Execution, Visualization, and Analysis
 
 ## Features
-PYPE is a command line tool that can be used to run Phenome Wide Association Studies (PheWAS) on data produced by the UK Biobank (Version 1.0). 
+PYPE is a command line tool that can be used to run Phenome Wide Association Studies (PheWAS) on data produced by the UK Biobank or other Biobank sources (provided they follow similar format to the UKBB). 
 
-Currently, PYPE takes as input BED/BIM/FAM files for the genotype data (only if running PheWAS with a set of variants), and TAB files for the phenotype data and outputs a set of TSV files for each chromosome (if using genotype data) or phenotype (if only using phenotype data) with the results of the PheWAS analysis (including p-values, beta values, and standard error). The user can then run the visualization scripts to generate manhattan plots across all categories with annotations:
+Currently, PYPE takes as input BED/BIM/FAM files for the genotype data (only if running PheWAS with a set of variants), and TAB files (TSV) for the phenotype data and outputs a set of TSV files for each chromosome (if using genotype data) or phenotype (if only using phenotype data) with the results of the PheWAS analysis (including p-values, beta values, and standard error). The user can then run the visualization scripts to generate manhattan plots across all categories with annotations:
 
 <p align="center">
 	<img src="assets/abd_manhattan_annotated.png" width="800" />
@@ -45,7 +45,7 @@ and variant enrichment plots that show the number of significant variant-phenoty
 	<img src="assets/abd_cat_enrichment.png" width="800" />
 </p>
 
-PYPE also annotates each significant variant with the upstream and downstream genes close to the variant, providing output files that give descriptions of the variants' functional consequences, the genes' role in biological processes, as well as a variety of other annotations that the user can request. It does this using the lightweight REST API from the [BioThings API](https://biothings.io/). Lastly, using a port of the TwoSampleMR code from [MRC Integrative Epidemiology Unit at the University of Bristol](https://github.com/MRCIEU/TwoSampleMR), PYPE can be used to run Mendelian Randomization (MR) analysis on the variants from the PheWAS analysis to help researchers investigate the causal relationships between genetic variants and phenotypes.
+PYPE also annotates each significant variant with the upstream and downstream genes close to the variant, providing output files that give descriptions of the variants' functional consequences, the genes' role in biological processes, as well as a variety of other annotations that the user can request. It does this using the lightweight REST API from the [BioThings API](https://biothings.io/). Lastly, using a port of the MR functionality from TwoSampleMR code from the [MRC Integrative Epidemiology Unit at the University of Bristol](https://github.com/MRCIEU/TwoSampleMR) and from the [Do Laboratory at Mount Sinai](https://github.com/rondolab/MR-PRESSO), PYPE can be used to run Mendelian Randomization (MR) analysis on the variants from the PheWAS analysis to help researchers investigate the causal relationships between genetic variants and phenotypes.
 
 ## Installation
 
@@ -79,7 +79,7 @@ By running the script below, we can generate manhattan plots, volcano plots, and
 
 ### MR
 
-By running the script below, we can run an MR analysis using a separate set of variants (not from the example data above as you need at least 2-3 variants to run MR). This script uses the run_mr.py file to do so.
+By running the script below, we can run an MR analysis using a separate set of variants (not from the example data above as you need at least 3 variants to run MR (for most MR tests)). This script uses the run_mr.py file to do so.
 
 [run_mr.sh](test_data/test_scripts/run_mr.sh)
 
@@ -93,7 +93,7 @@ This file should have individuals on the rows (listing individual IDs under the 
 
 --bfiles_directory /path/to/bfiles/directory
 
-This is the directory where the BIM/BED/FAM files are located. This data should come directly from the UK Biobank. If the data is not in this format (for example BGEN), it can be converted using the plink2 command line tool using the follow script for each bgen file for each chromosome:
+This is the directory where the BIM/BED/FAM files are located. This data should come directly from the biobank data source. If the data is not in this format (for example BGEN), it can be converted using the plink2 command line tool using the follow script for each bgen file for each chromosome:
 
 ```bash
 plink2 --bgen /path/to/ukb_chr$1.bgen ref-last \
@@ -217,6 +217,19 @@ chr1	67000041	67208778	SGIP1
 
 These files should be the ones used in the PheWAS and thus have the same format.
 
+Currently this package supports the following MR tests:
+1. Inverse Variance Weighted (IVW)
+2. MR-Egger
+3. Simple Median
+4. Weighted Median
+5. Penalized Weighted Median
+6. Simple Mode
+7. Simple Mode with NO Measurement Error (NOME) assumption
+8. Weighted Mode
+9. Penalized Mode
+10. Weighted Mode with NOME assumption
+11. MR-PRESSO
+
 ## Download HG19 Gene List
 
 Go to [UCSD Genome Browser Table Browser](https://genome.ucsc.edu/cgi-bin/hgTables) and select the following parameters:
@@ -259,15 +272,17 @@ TBD
 
 ## Future Plans
 
-Support for PheWAS on data from a greater variety of studies, faster PheWAS execution, and more visualization options.
+Better support for PheWAS on data from a greater variety of studies, faster PheWAS execution, and more visualization options.
 
 Move from annotating nearby genes using manual method using HG19 gene list to using the BioThings API.
+
+Adding all known Mendelian Randomization methods.
 
 ## License
 This project is licensed under the Apache 2.0 license.
 
 ## Author
-Taykhoom Dalal (Undergraduate Student at the University of California, Los Angeles)
+Taykhoom Dalal (Ph.D. student at the [Tri-Institutional Ph.D. Program in Computational Biology and Medicine](https://compbio.triiprograms.org/))
 
 ## Mentor
 [Dr. Chirag Patel (Harvard Medical School)](https://dbmi.hms.harvard.edu/people/chirag-patel)
