@@ -1,12 +1,11 @@
 import numpy as np
+import pandas as pd
 from statsmodels.formula.api import wls
 from scipy.fft import fft, ifft
 from scipy.interpolate import interp1d
 from scipy.stats import norm, chi2, t, gaussian_kde, median_abs_deviation
 
-
-
-def run_mr(mr_type, harmonized_data, beta_exp, beta_out, se_exp, se_out, all = False):
+def run_mr(mr_type, harmonized_data, beta_exp, beta_out, se_exp, se_out, mr_args, all = False):
     '''
     Run MR using the specified methods. 
 
@@ -24,7 +23,11 @@ def run_mr(mr_type, harmonized_data, beta_exp, beta_out, se_exp, se_out, all = F
         Name of the column containing the exposure standard errors.
     se_out : str    
         Name of the column containing the outcome standard errors.
-    
+    mr_args : dict
+        Dictionary containing the extra arguments for the various MR functions.
+    all : boolean
+        Boolean indicating whether or not to run all the MR functions on the data.
+        
     Returns
     -------
     mr_results : dict
@@ -35,41 +38,42 @@ def run_mr(mr_type, harmonized_data, beta_exp, beta_out, se_exp, se_out, all = F
     mr_results = {}
     
     if all == True:
-        mr_results['ivw'] = run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-        mr_results['egger'] = run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-        mr_results['simple_median'] = run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-        mr_results['weighted_median'] = run_mr_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-        mr_results['penalized_weighted_median'] = run_mr_penalized_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-        mr_results['simple_mode'] = mr_simple_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-        mr_results['simple_mode_nome'] = mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-        mr_results['weighted_mode'] = mr_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-        mr_results['penalized_weighted_mode'] = mr_penalized_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-        mr_results['weighted_mode_nome'] = mr_weighted_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-
+        mr_results['Inverse Variance Weighted'] = run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+        mr_results['Egger'] = run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+        mr_results['Simple Median'] = run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Simple Median"])
+        mr_results['Weighted Median'] = run_mr_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Weighted Median"])
+        mr_results['Penalized Weighted Median'] = run_mr_penalized_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Penalized Weighted Median"])
+        mr_results['Simple Mode'] = run_mr_simple_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Simple Mode"])
+        mr_results['Simple Mode (NOME)'] = run_mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Simple Mode (NOME)"])
+        mr_results['Weighted Mode'] = run_mr_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Weighted Mode"])
+        mr_results['Penalized Mode'] = run_mr_penalized_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Penalized Mode"])
+        mr_results['Weighted Mode (NOME)'] = run_mr_weighted_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Weighted Mode (NOME)"])
+        mr_results['PRESSO'] = run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["PRESSO"])
         return mr_results
 
     for method in mr_type:
         if method == 'ivw':
-            mr_results[method] = run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+            mr_results['Inverse Variance Weighted'] = run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out)
         elif method == 'egger':
-            mr_results[method] = run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+            mr_results['Egger'] = run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out)
         elif method == 'simple_median':
-            mr_results[method] = run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+            mr_results['Simple Median'] = run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Simple Median"])
         elif method == 'weighted_median':
-            mr_results[method] = run_mr_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+            mr_results['Weighted Median'] = run_mr_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Weighted Median"])
         elif method == 'penalized_weighted_median':
-            mr_results[method] = run_mr_penalized_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+            mr_results['Penalized Weighted Median'] = run_mr_penalized_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Penalized Weighted Median"])
         elif method == 'simple_mode':
-            mr_results[method] = mr_simple_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+            mr_results['Simple Mode'] = run_mr_simple_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Simple Mode"])
         elif method == 'simple_mode_nome':
-            mr_results[method] = mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+            mr_results['Simple Mode (NOME)'] = run_mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Simple Mode (NOME)"])
         elif method == 'weighted_mode':
-            mr_results[method] = mr_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-        elif method == 'penalized_weighted_mode':
-            mr_results[method] = mr_penalized_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+            mr_results['Weighted Mode'] = run_mr_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Weighted Mode"])
+        elif method == 'penalized_mode':
+            mr_results['Penalized Mode'] = run_mr_penalized_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Penalized Mode"])
         elif method == 'weighted_mode_nome':
-            mr_results[method] = mr_weighted_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out)
-
+            mr_results['Weighted Mode (NOME)'] = run_mr_weighted_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Weighted Mode (NOME)"])
+        elif method == 'presso':
+            mr_results['PRESSO'] = run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["PRESSO"])
     return mr_results
 
 def run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out):
@@ -95,6 +99,8 @@ def run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out):
         List containing the model-pvalue, beta, and standard error.
     '''
     
+    print("Running Inverse Variance Weighted (IVW) Regression")
+
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     data = data.rename(columns={beta_exp : 'BETA_EXP', 
                                 beta_out : 'BETA_OUT', 
@@ -146,6 +152,7 @@ def run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out):
         List containing the model-pvalue, beta, and standard error.
     '''
 
+    print("Running Egger's Regression")
 
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     
@@ -218,6 +225,8 @@ def run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, nb
         List containing the model-pvalue, beta, and standard error.
     '''
     
+    print("Running Simple Median")
+
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     
     data = data.rename(columns={beta_exp : 'BETA_EXP', 
@@ -264,6 +273,8 @@ def run_mr_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, 
     list
         List containing the model-pvalue, beta, and standard error.
     '''
+
+    print("Running Weighted Median")
 
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     
@@ -312,6 +323,8 @@ def run_mr_penalized_weighted_median(harmonized_data, beta_exp, beta_out, se_exp
     list
         List containing the model-pvalue, beta, and standard error.
     '''
+
+    print("Running Penalized Weighted Median")
 
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     
@@ -498,7 +511,7 @@ def beta_MODE(BetaIV_in, seBetaIV_in, phi):
 
     return max_density_x_value
 
-def mr_simple_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20, phi = 1, alpha = 0.05):
+def run_mr_simple_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20, phi = 1, alpha = 0.05):
     '''
     Calculate the Simple Mode MR estimate.
 
@@ -518,12 +531,19 @@ def mr_simple_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 
         Number of bootstrap replications to calculate the standard error.
     penalty_con : int
         Constant term in penalisation.
+    phi : int
+        Bandwidth parameter.
+    alpha : float
+        Width of confidence interval.
 
     Returns
     -------
     list
         List containing the model-pvalue, beta, and standard error.
     '''   
+
+    print("Running Simple Mode")
+
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     
     data = data.rename(columns={beta_exp : 'BETA_EXP', 
@@ -534,7 +554,7 @@ def mr_simple_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 
     exp_beta_len = data['BETA_EXP'].shape[0]
     
     if exp_beta_len < 3:
-        print('Found {} variants. Need at least 3. Exiting MR Weighted Median.'.format(data[['BETA_EXP']].shape[0]))
+        print('Found {} variants. Need at least 3. Exiting MR Simple Mode.'.format(data[['BETA_EXP']].shape[0]))
         return None
 
     BetaIV = data['BETA_OUT'] / data['BETA_EXP']
@@ -561,7 +581,7 @@ def mr_simple_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 
 
     return [model_pvalue, beta, standard_error]
 
-def mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20, phi = 1, alpha = 0.05):
+def run_mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20, phi = 1, alpha = 0.05):
     '''
     Calculate the Simple Mode (NOME) MR estimate.
 
@@ -581,12 +601,19 @@ def mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, nbo
         Number of bootstrap replications to calculate the standard error.
     penalty_con : int
         Constant term in penalisation.
+    phi : int
+        Bandwidth parameter.
+    alpha : float
+        Width of confidence interval.
 
     Returns
     -------
     list
         List containing the model-pvalue, beta, and standard error.
-    '''   
+    '''
+
+    print("Running Simple Mode (NOME)")
+
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     
     data = data.rename(columns={beta_exp : 'BETA_EXP', 
@@ -597,7 +624,7 @@ def mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, nbo
     exp_beta_len = data['BETA_EXP'].shape[0]
     
     if exp_beta_len < 3:
-        print('Found {} variants. Need at least 3. Exiting MR Weighted Median.'.format(data[['BETA_EXP']].shape[0]))
+        print('Found {} variants. Need at least 3. Exiting MR Simple Mode (NOME).'.format(data[['BETA_EXP']].shape[0]))
         return None
 
     BetaIV = data['BETA_OUT'] / data['BETA_EXP']
@@ -626,9 +653,9 @@ def mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, nbo
 
     return [model_pvalue, beta, standard_error]
 
-def mr_weighted_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20, phi = 1, alpha = 0.05):
+def run_mr_weighted_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20, phi = 1, alpha = 0.05):
     '''
-    Calculate the Weighted NOME MR estimate.
+    Calculate the Weighted Mode (NOME) MR estimate.
 
     Parameters
     ----------
@@ -646,12 +673,18 @@ def mr_weighted_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, n
         Number of bootstrap replications to calculate the standard error.
     penalty_con : int
         Constant term in penalisation.
+    phi : int
+        Bandwidth parameter.
+    alpha : float
+        Width of confidence interval.
 
     Returns
     -------
     list
         List containing the model-pvalue, beta, and standard error.
     '''
+
+    print("Running Weighted Mode (NOME)")
 
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     
@@ -663,7 +696,7 @@ def mr_weighted_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, n
     exp_beta_len = data['BETA_EXP'].shape[0]
     
     if exp_beta_len < 3:
-        print('Found {} variants. Need at least 3. Exiting MR Weighted Median.'.format(data[['BETA_EXP']].shape[0]))
+        print('Found {} variants. Need at least 3. Exiting MR Weighted Mode (NOME).'.format(data[['BETA_EXP']].shape[0]))
         return None
 
     BetaIV = data['BETA_OUT'] / data['BETA_EXP']
@@ -693,9 +726,9 @@ def mr_weighted_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, n
 
     return [model_pvalue, beta, standard_error]
 
-def mr_penalized_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20, phi = 1, alpha = 0.05):
+def run_mr_penalized_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20, phi = 1, alpha = 0.05):
     '''
-    Calculate the Penalized Weighted Mode MR estimate.
+    Calculate the Penalized Mode MR estimate.
 
     Parameters
     ----------
@@ -713,12 +746,18 @@ def mr_penalized_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_o
         Number of bootstrap replications to calculate the standard error.
     penalty_con : int
         Constant term in penalisation.
+    phi : int
+        Bandwidth parameter.
+    alpha : float
+        Width of confidence interval.
 
     Returns
     -------
     list
         List containing the model-pvalue, beta, and standard error.
     '''
+
+    print("Running Penalized Mode")
 
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     
@@ -730,7 +769,7 @@ def mr_penalized_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_o
     exp_beta_len = data['BETA_EXP'].shape[0]
     
     if exp_beta_len < 3:
-        print('Found {} variants. Need at least 3. Exiting MR Weighted Median.'.format(data[['BETA_EXP']].shape[0]))
+        print('Found {} variants. Need at least 3. Exiting MR Penalized Weighted Mode.'.format(data[['BETA_EXP']].shape[0]))
         return None
 
     BetaIV = data['BETA_OUT'] / data['BETA_EXP']
@@ -769,9 +808,9 @@ def mr_penalized_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_o
 
     return [model_pvalue, beta, standard_error]
 
-def mr_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20, phi = 1, alpha = 0.05):
+def run_mr_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot = 1000, penalty_con = 20, phi = 1, alpha = 0.05):
     '''
-    Calculate the [...] MR estimate.
+    Calculate the Weighted Mode MR estimate.
 
     Parameters
     ----------
@@ -789,12 +828,18 @@ def mr_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot 
         Number of bootstrap replications to calculate the standard error.
     penalty_con : int
         Constant term in penalisation.
+    phi : int
+        Bandwidth parameter.
+    alpha : float
+        Width of confidence interval.
 
     Returns
     -------
     list
         List containing the model-pvalue, beta, and standard error.
     '''
+
+    print("Running Weighted Mode")
 
     data = harmonized_data[[beta_exp, beta_out, se_exp, se_out]]
     
@@ -806,7 +851,7 @@ def mr_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot 
     exp_beta_len = data['BETA_EXP'].shape[0]
     
     if exp_beta_len < 3:
-        print('Found {} variants. Need at least 3. Exiting MR Weighted Median.'.format(data[['BETA_EXP']].shape[0]))
+        print('Found {} variants. Need at least 3. Exiting MR Weighted Mode.'.format(data[['BETA_EXP']].shape[0]))
         return None
 
     BetaIV = data['BETA_OUT'] / data['BETA_EXP']
@@ -835,3 +880,262 @@ def mr_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, nboot 
     model_pvalue = 2 * t.sf(abs(beta / standard_error), len(data['BETA_EXP']) - 1)
 
     return [model_pvalue, beta, standard_error]
+
+def matrix_power_eigen(x, n):
+    values, vectors = np.linalg.eig(x)
+    M_power_n = vectors @ np.diag(values**n) @ np.linalg.inv(vectors)
+    return M_power_n
+
+def getRSS_LOO(BetaOutcome, BetaExposure, data, returnIV):
+    # Check if BetaExposure is a list (multiple exposures) or a single string (single exposure)
+    
+    is_multiple_exposures = len(BetaExposure) > 1
+    
+    # Adjust dataW construction based on the type of BetaExposure
+    if is_multiple_exposures:
+        dataW = data[[BetaOutcome] + BetaExposure].multiply(np.sqrt(data["Weights"].values[:, np.newaxis]), axis=0)
+        X = dataW[BetaExposure].values
+    else:
+        BetaExposure = BetaExposure[0]
+        dataW = data[[BetaOutcome, BetaExposure]].multiply(np.sqrt(data["Weights"].values[:, np.newaxis]), axis=0)
+        X = dataW[[BetaExposure]].values
+    
+    Y = dataW[[BetaOutcome]].values
+
+    CausalEstimate_LOO = []
+    for i in range(X.shape[0]):
+        X_loo = np.delete(X, i, axis=0)
+        Y_loo = np.delete(Y, i, axis=0)
+        # Ensure X_loo is 2D for matrix operations
+        if X_loo.ndim == 1:
+            X_loo = X_loo.reshape(-1, 1)
+        if Y_loo.ndim == 1:
+            Y_loo = Y_loo.reshape(-1, 1)
+        inv_XTX = matrix_power_eigen(X_loo.T @ X_loo, -1)
+        estimate = (inv_XTX @ X_loo.T) @ Y_loo
+
+        CausalEstimate_LOO.append(estimate)
+
+    CausalEstimate_LOO = np.squeeze(np.array(CausalEstimate_LOO))
+
+    # Adjust the RSS calculation based on the dimensions of CausalEstimate_LOO
+    if is_multiple_exposures:
+        # Proper handling for multiple exposures
+        RSS = np.sum((Y - np.dot(X, CausalEstimate_LOO.T)) ** 2)
+    else:
+        # For single exposure
+        RSS = np.sum((Y.flatten() - CausalEstimate_LOO * X.flatten()) ** 2)
+
+    if returnIV:
+        return RSS, CausalEstimate_LOO
+    else:
+        return RSS
+
+def getRandomData(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data):
+    # Prepare the formula for linear regression
+    formula = f"{BetaOutcome} ~ -1 + {' + '.join(BetaExposure)}"
+    
+    # Run leave-one-out regression and predict the outcome for the left-out observation
+    predictions = []
+    for i in range(len(data)):
+        # Exclude the i-th row
+        train_data = data.drop(index=i)
+        test_data = data.iloc[[i]]
+        
+        # Fit the linear model
+        model = wls(formula=formula, data=train_data, weights=train_data['Weights']).fit()
+        
+        # Predict the outcome for the left-out observation
+        pred = model.predict(test_data)
+        predictions.append(pred.iloc[0])
+    
+    # Generate random data based on the original data and predictions
+    dataRandom = pd.DataFrame({
+        exp: np.random.normal(loc=data[exp], scale=data[SdExp]) for exp, SdExp in zip(BetaExposure, SdExposure)
+    })
+    dataRandom[BetaOutcome] = [np.random.normal(loc=pred, scale=data.iloc[i][SdOutcome]) for i, pred in enumerate(predictions)]
+    dataRandom['Weights'] = data['Weights']
+    
+    return dataRandom
+
+def getRandomBias(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, refOutlier):
+    indices = list(refOutlier) + [np.random.choice(list(set(range(len(data))) - set(refOutlier))) for _ in range(len(data) - len(refOutlier))]
+    formula = f"{BetaOutcome} ~ -1 + {' + '.join(BetaExposure)}"
+    data_subset = data.iloc[indices[:len(indices) - len(refOutlier)]]
+    mod_random = wls(formula, data=data_subset, weights=data_subset['Weights']).fit()
+    return mod_random.params[BetaExposure]
+
+def run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, outlier_test = False, distortion_test = False, sigthresh = 0.05, nbDist = 1000):
+    '''
+    Calculate the MR PRESSO test.
+
+    Parameters
+    ----------
+    harmonized_data : pandas.DataFrame
+        Dataframe containing the harmonized data.
+    beta_exp : str
+        Name of the column containing the exposure effect sizes.
+    beta_out : str
+        Name of the column containing the outcome effect sizes.
+    se_exp : str    
+        Name of the column containing the exposure standard errors.
+    se_out : str    
+        Name of the column containing the outcome standard errors.
+
+
+    Returns
+    -------
+    dict
+        Dictionary containing the MR results, as well as the results of the Global, Outlier, and Distortion Tests.
+        For more information check out https://github.com/rondolab/MR-PRESSO/tree/master
+    '''
+
+    print("Running Pleiotropy RESidual Sum and Outlier (PRESSO)")
+
+    if isinstance(beta_exp, str):
+        beta_exp = [beta_exp]
+    if isinstance(se_exp, str):
+        se_exp = [se_exp]
+
+    selected_columns = [beta_out] + beta_exp + [se_out] + se_exp
+
+    data = harmonized_data[selected_columns]
+
+    # drop rows with any NA values
+    data = data.dropna()
+
+    # Adjust specified columns by the sign of the first exposure variable
+    sign_of_first_exposure = np.sign(data[beta_exp[0]])
+
+    # Loop through each column to be adjusted and multiply by the sign
+    for column in [beta_out] + beta_exp:
+        data[column] *= sign_of_first_exposure
+
+    # Adjust weights based on the square of the inverse of se_out
+    data['Weights'] = 1 / data[se_out] ** 2
+
+    if data.shape[0] < len(beta_exp) + 2:
+        print('Found {} variants. Need at least {}. Exiting MR PRESSO.'.format(data.shape[0], len(beta_exp) + 2))
+        return None
+
+    if len(data) >= nbDist:
+        print("Not enough elements to compute empirical P-values for MR PRESSO, increase nbDist from {} to above {}".format(nbDist, len(data)))
+        return None
+
+    RSSobs = getRSS_LOO(beta_out, beta_exp, data, outlier_test)
+
+    random_data = [getRandomData(BetaOutcome=beta_out, BetaExposure=beta_exp,
+                                SdOutcome=se_out, SdExposure=se_exp, data=data)
+                                for _ in range(nbDist)]
+
+    # Computing RSS for each random dataset
+    RSSexp = [getRSS_LOO(beta_out, beta_exp, random_dataset, outlier_test)
+                        for random_dataset in random_data]
+
+    # Calculate p-value based on OUTLIERtest
+    if outlier_test:
+        # Assuming RSSobs is a list with the observed RSS as its first element
+        GlobalTest = {'RSSobs': RSSobs[0], 'P_value': sum(rss[0] > RSSobs[0] for rss in RSSexp) / nbDist}
+    else:
+        GlobalTest = {'RSSobs': RSSobs, 'P_value': sum(rss > RSSobs for rss in RSSexp) / nbDist}
+
+    beta_outcome_index = random_data[0].columns.get_loc(beta_out)
+    beta_exposure_indices = [random_data[0].columns.get_loc(col) for col in beta_exp]
+
+    if GlobalTest['P_value'] < sigthresh and outlier_test:
+        OutlierTest = []
+
+        for SNV in range(len(data)):
+            # Extracting the row across all random_data matrices for the current SNV
+            randomSNP = np.vstack([mat.iloc[SNV] for mat in random_data])
+
+            # Calculating the difference and expected values based on BetaExposure length
+            if len(beta_exp) == 1:
+                Dif = (data.iloc[SNV][beta_out] - data.iloc[SNV][beta_exp] * RSSobs[1][SNV])[0]
+                Exp = randomSNP[:, beta_outcome_index] - randomSNP[:, beta_exposure_indices[0]] * RSSobs[1][SNV]
+            else:
+                Dif = (data.iloc[SNV][beta_out] - np.sum(data.iloc[SNV][beta_exp] * RSSobs[1][:, SNV])).values
+                Exp = randomSNP[:, beta_outcome_index] - np.sum(randomSNP[:, beta_exposure_indices] * RSSobs[1][:, SNV], axis=1)
+
+            # Calculating p-value for the current SNV
+            pval = np.sum(Exp**2 > Dif**2) / len(random_data)
+            OutlierTest.append([Dif**2, pval])
+
+        # Converting the results to a DataFrame
+        OutlierTest = pd.DataFrame(OutlierTest, columns=['RSSobs', 'P_value'], index=data.index)
+
+        # Applying Bonferroni correction
+        OutlierTest['P_value'] = np.minimum(OutlierTest['P_value'] * len(data), 1.0)
+    else:
+        OUTLIERtest = False     
+
+    formula_all = f"{beta_out} ~ -1 + {' + '.join(beta_exp)}"
+    mod_all = wls(formula_all, data=data, weights=data['Weights']).fit()
+    
+    if distortion_test and outlier_test:
+        refOutlier = OutlierTest[OutlierTest['P_value'] <= sigthresh].index.tolist()
+    
+        if len(refOutlier) > 0:
+            if len(refOutlier) < len(data):
+                BiasExp = [getRandomBias(beta_out, beta_exp, se_out, se_exp, data, refOutlier) for _ in range(nbDist)]
+                BiasExp = pd.DataFrame(BiasExp)
+                
+                data_noOutliers = data.drop(refOutlier)
+                mod_noOutliers = wls(formula_all, data=data_noOutliers, weights=data_noOutliers['Weights']).fit()
+                
+                BiasObs = (mod_all.params[beta_exp] - mod_noOutliers.params[beta_exp]) / abs(mod_noOutliers.params[beta_exp])
+                BiasExp = (mod_all.params[beta_exp].values - BiasExp) / abs(BiasExp)
+                
+                BiasTest = {'Outliers Indices': refOutlier, 
+                            'Distortion Coefficient': (100 * BiasObs)[0], 
+                            'P_value': np.sum(np.abs(BiasExp) > np.abs(BiasObs)) / nbDist}
+            else:
+                BiasTest = {'Outliers Indices': "All SNPs considered as outliers", 
+                            'Distortion Coefficient': np.nan, 
+                            'P_value': np.nan}
+        else:
+            BiasTest = {'Outliers Indices': "No significant outliers", 
+                        'Distortion Coefficient': np.nan, 
+                        'P_value': np.nan}
+    else:
+        OUTLIERtest = False
+    
+    if GlobalTest['P_value'] == 0:
+        GlobalTest['P_value_significance'] = f"<{1/nbDist}"
+        
+    
+    res = {'Global Test': GlobalTest}
+
+    if outlier_test:
+        # Formatting the p-value in OutlierTest
+        OutlierTest['P_value'] = OutlierTest['P_value'].apply(lambda p: f"<{len(data)/nbDist}" if p == 0 else p)
+        res['Outlier Test'] = OutlierTest
+        
+        if distortion_test:
+            # Formatting the p-value in BiasTest
+            BiasTest['P_value'] = BiasTest['P_value'].apply(lambda p: f"<{1/nbDist}" if p == 0 else p)
+            res['Distortion Test'] = BiasTest
+        
+        # Check for instability in outlier test
+        if len(data) / nbDist > sigthresh:
+            print("Outlier test unstable for MR PRESSO. The significance threshold of {} for the outlier test is not achievable with only {} distributions to compute the null distribution. The current precision is <{}. Increase nbDist.".format(sigthresh, nbDist, len(data)/nbDist))
+
+    coefficients_all = mod_all.summary2().tables[1]
+    OriginalMR = ["MR PRESSO Raw", coefficients_all['P>|t|'], coefficients_all['Coef.'], coefficients_all['Std.Err.'], coefficients_all['t']]
+
+    # Checking if mod_noOutliers exists and constructing the OutlierCorrectedMR DataFrame
+    try:
+        coefficients_no_outliers = mod_noOutliers.summary2().tables[1]
+        OutlierCorrectedMR = ["MR PRESSO Outlier-corrected", coefficients_no_outliers['P>|t|'], coefficients_no_outliers['Coef.'], coefficients_no_outliers['Std.Err.'],coefficients_no_outliers['t']]
+
+        res['MR_RESULTS'] = [OriginalMR, OutlierCorrectedMR]
+
+    except NameError:
+        if outlier_test == True and distortion_test == True:
+            print("No outliers were identified for MR PRESSO, therefore no results will be returned for the outlier-corrected MR PRESSO.")
+        res['MR_RESULTS'] = [OriginalMR]
+
+    # print(res)
+
+    # Return the results dictionary
+    return res
