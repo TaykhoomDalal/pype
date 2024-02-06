@@ -1014,7 +1014,7 @@ def run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, outlier_t
     # Adjust weights based on the square of the inverse of se_out
     data['Weights'] = 1 / data[se_out] ** 2
 
-    if data.shape[0] < len(beta_exp) + 2:
+    if data.shape[0] <= len(beta_exp) + 2:
         print('Found {} variants. Need at least {}. Exiting MR PRESSO.'.format(data.shape[0], len(beta_exp) + 2))
         return None
 
