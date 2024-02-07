@@ -1,6 +1,7 @@
 import os
 import mr
 import json
+import inspect
 import mr_utils
 import argparse
 import pandas as pd
@@ -61,6 +62,8 @@ def main():
 	parser.add_argument('--out_SE', help = 'Name of the column indicating the standard error for the outcome variants', required = False, default = 'SE', type = str)
 	parser.add_argument('--exp_N', help = 'Name of the column indicating the number of samples for the exposure variants', required = False, default = 'N', type = str)
 	parser.add_argument('--out_N', help = 'Name of the column indicating the number of samples for the outcome variants', required = False, default = 'N', type = str)
+	parser.add_argument('--exp_EFFECT', help = 'Name of the column indicating the effect allele for the exposure variants', required = False, default = 'Effect_Allele', type = str)
+	parser.add_argument('--out_EFFECT', help = 'Name of the column indicating the effect allele for the outcome variants', required = False, default = 'Effect_Allele', type = str)
 
 	# Optional Arguments for MR
 	parser.add_argument('--similarity_func', help = 'Similarity function to use for matching trait strings in OpenGWAS', choices = ['jaccard', 'levenshtein'], default = 'jaccard', required = False, type = str)
@@ -94,6 +97,8 @@ def main():
 	out_SE = args.out_SE
 	exp_N = args.exp_N
 	out_N = args.out_N
+	exp_EFFECT = args.exp_EFFECT
+	out_EFFECT = args.out_EFFECT
 
 	# Optional Arguments
 	similarity_func = args.similarity_func
@@ -141,8 +146,11 @@ def main():
 		exit()
 
 	try:
+		filename = inspect.getframeinfo(inspect.currentframe()).filename
+		path = os.path.dirname(os.path.abspath(filename))
 		# Attempt to open the JSON file (is in current directory)
-		with open("mr_args.json", 'r') as file:
+		print("Attempting to open the JSON file containing argument values for MR (located at {})".format(path + '/mr_args.json'))
+		with open(path + "/mr_args.json", 'r') as file:
 			# Load its content as a Python dictionary
 			mr_args = json.load(file)
 			print("JSON data loaded successfully.")
@@ -192,9 +200,9 @@ def main():
 				continue
 			else:
 				if exp_N in exposure_variants_i.columns:
-					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_B, exp_P, exp_SE, exp_N]]
+					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_EFFECT, exp_B, exp_P, exp_SE, exp_N]]
 				else:
-					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_B, exp_P, exp_SE]]
+					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_EFFECT, exp_B, exp_P, exp_SE]]
 
 			temp_data = []
 			for trait_family in traits:
@@ -216,7 +224,7 @@ def main():
 
 						for mr_type_i, results in mr_res.items():
 							if results is None:
-								print('{} MR failed for Exposure ({}) against Outcome ({})'.format(mr_type_i.capitalize(), exposure_pheno, phenotype))
+								print('MR {} failed for Exposure ({}) against Outcome ({})'.format(mr_type_i.capitalize(), exposure_pheno, phenotype))
 							else:
 
 								if mr_type_i == 'PRESSO':
@@ -248,9 +256,9 @@ def main():
 			exit()
 		else:
 			if out_N in outcome_variants_d.columns:
-				outcome_variants_d = outcome_variants_d[[out_rsID, out_CHR, out_B, out_P, out_SE, out_N]]
+				outcome_variants_d = outcome_variants_d[[out_rsID, out_CHR, out_EFFECT, out_B, out_P, out_SE, out_N]]
 			else:
-				outcome_variants_d = outcome_variants_d[[out_rsID, out_CHR, out_B, out_P, out_SE]]
+				outcome_variants_d = outcome_variants_d[[out_rsID, out_CHR, out_EFFECT, out_B, out_P, out_SE]]
 	
 		if run_all_mr == True:
 			mr_string = "All Tests"
@@ -269,9 +277,9 @@ def main():
 				continue
 			else:
 				if exp_N in exposure_variants_i.columns:
-					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_B, exp_P, exp_SE, exp_N]]
+					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_EFFECT, exp_B, exp_P, exp_SE, exp_N]]
 				else:
-					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_B, exp_P, exp_SE]]
+					exposure_variants_i = exposure_variants_i[[exp_rsID, exp_CHR, exp_EFFECT, exp_B, exp_P, exp_SE]]
 
 			# harmonize the exposure and outcome variants
 			harmonized_data = mr_utils.harmonize(exposure_variants_i, outcome_variants_d, '_' + exposure_pheno, '_' + outcome_phenotype)
@@ -282,7 +290,7 @@ def main():
 			temp_data = []
 			for mr_type_i, results in mr_res.items():
 				if results is None:
-					print('{} MR failed for Exposure ({}) against Outcome ({})'.format(mr_type_i.capitalize(), exposure_pheno, outcome_phenotype))
+					print('MR {} failed for Exposure ({}) against Outcome ({})'.format(mr_type_i.capitalize(), exposure_pheno, outcome_phenotype))
 				else:
 
 					if mr_type_i == 'PRESSO':
