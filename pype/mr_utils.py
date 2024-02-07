@@ -124,30 +124,45 @@ def find_studies_based_on_traits(traits, similarity, batch_list = None, strip = 
                 
     return trait_to_study
 
-def harmonize(sample1, sample2, suffix1, suffix2):
+def harmonize(exposure, outcome, suffix_exp, suffix_out):
     
-    # both sample1 and sample2 now have the same order of their columns (rsID, CHR, BETA, P, SE, [OPTIONAL] N) 
+    # both exposure and outcome now have the same order of their columns (rsID, CHR, "Effect_Allele", BETA, P, SE, [OPTIONAL] N) 
 
-    if sample1.columns.size == 5:
-        sample1.columns = ["rsID", "CHR", "BETA", "P", "SE"]
+    if exposure.columns.size == 6:
+        exposure.columns = ["rsID", "CHR", "Effect_Allele" ,"BETA", "P", "SE"]
     else:
-        sample1.columns = ["rsID", "CHR", "BETA", "P", "SE", "N"]
+        exposure.columns = ["rsID", "CHR", "Effect_Allele", "BETA", "P", "SE", "N"]
     
-    if sample2.columns.size == 5:
-        sample2.columns = ["rsID", "CHR", "BETA", "P", "SE"]
+    if outcome.columns.size == 6:
+        outcome.columns = ["rsID", "CHR", "Effect_Allele","BETA", "P", "SE"]
     else:
-        sample2.columns = ["rsID", "CHR", "BETA", "P", "SE", "N"]
+        outcome.columns = ["rsID", "CHR", "Effect_Allele", "BETA", "P", "SE", "N"]
 
     # don't want type errors when merging
-    sample1['CHR'] = sample1['CHR'].replace('X', 23).replace('Y', 24)
-    sample2['CHR'] = sample2['CHR'].replace('X', 23).replace('Y', 24)
+    exposure['CHR'] = exposure['CHR'].replace('X', 23).replace('Y', 24)
+    outcome['CHR'] = outcome['CHR'].replace('X', 23).replace('Y', 24)
 
-    # merge the two dataframes, ensuring the chromosomes/position as well as alleles are the same
-    merged = pd.merge(sample1, sample2, on=['rsID', 'CHR'], suffixes = [suffix1, suffix2]) # on=['rsID', 'CHR', 'Non_Effect', 'Effect']
+    # Identifying mismatched Effect Alleles before merging
+    # First, perform an initial merge to identify mismatches
+    check_merge = pd.merge(exposure[['rsID', 'CHR', 'Effect_Allele']], outcome[['rsID', 'CHR', 'Effect_Allele']], on=['rsID', 'CHR'], suffixes=['_exp', '_out'], how='inner')
+
+    # Find rows with mismatched Effect Alleles
+    mismatched = check_merge[check_merge['Effect_Allele_exp'] != check_merge['Effect_Allele_out']]
+
+    # Print the rsIDs that are being removed
+    for index, row in mismatched.iterrows():
+        print("Removing {} for having incompatible effect alleles ({} has {} while {} has {})".format(row['rsID'],suffix_exp,row['Effect_Allele_exp'],suffix_out,row['Effect_Allele_out']))
+
+    # Remove the mismatched rsIDs from exposure and outcome before the final merge
+    exposure_filtered = exposure[~exposure['rsID'].isin(mismatched['rsID'])]
+    outcome_filtered = outcome[~outcome['rsID'].isin(mismatched['rsID'])]
+
+    # merge the two dataframes, where the rsID, chromosome, and alleles are the same
+    merged = pd.merge(exposure_filtered, outcome_filtered, on=['rsID', 'CHR'], suffixes=[suffix_exp, suffix_out])
     
     # retain only the columns we care about in this order
-    if 'N' in sample1.columns or 'N' in sample2.columns:
-        merged = merged[['rsID', 'CHR', 'BETA' + suffix1, 'BETA' + suffix2, 'P' + suffix1, 'P' + suffix2, 'SE' + suffix1, 'SE' + suffix2, 'N']]
+    if 'N' in exposure.columns or 'N' in outcome.columns:
+        merged = merged[['rsID', 'CHR', 'BETA' + suffix_exp, 'BETA' + suffix_out, 'P' + suffix_exp, 'P' + suffix_out, 'SE' + suffix_exp, 'SE' + suffix_out, 'N']]
         
         # if one of the datasets doesn't have N
         merged['N'] = merged['N'].replace(np.nan, -1)
@@ -155,15 +170,14 @@ def harmonize(sample1, sample2, suffix1, suffix2):
         # drop duplicates, keeping the values with greatest number of samples (if data is available)
         merged = merged.loc[merged.groupby('rsID')['N'].idxmax()].reset_index(drop = True)
     else:
-        merged = merged[['rsID', 'CHR', 'BETA' + suffix1, 'BETA' + suffix2, 'P' + suffix1, 'P' + suffix2, 'SE' + suffix1, 'SE' + suffix2]]
+        merged = merged[['rsID', 'CHR', 'BETA' + suffix_exp, 'BETA' + suffix_out, 'P' + suffix_exp, 'P' + suffix_out, 'SE' + suffix_exp, 'SE' + suffix_out]]
    
     # if the dataframe is empty, we print an error message
     if merged.empty:
-        print("The merged dataframe is empty for {} and {}".format(suffix1, suffix2))
+        print("The merged dataframe is empty for {} and {}".format(suffix_exp, suffix_out))
         exit()
 
     return merged
-
 
 def extract_snps_from_outcomes(snps, outcome_studies, proxies = True, rsq = 0.8, align_alleles = 1, palindromes = 1, maf_threshold = 0.3, access_token = "NULL", splitsize=10000, proxy_splitsize = 500, verbose = False):    
     '''
