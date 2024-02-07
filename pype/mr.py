@@ -38,15 +38,15 @@ def run_mr(mr_type, harmonized_data, beta_exp, beta_out, se_exp, se_out, mr_args
     mr_results = {}
     
     if all == True:
-        mr_results['Inverse Variance Weighted'] = run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out)
         mr_results['Egger'] = run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out)
+        mr_results['Inverse Variance Weighted'] = run_mr_ivw(harmonized_data, beta_exp, beta_out, se_exp, se_out)
         mr_results['Simple Median'] = run_mr_simple_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Simple Median"])
         mr_results['Weighted Median'] = run_mr_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Weighted Median"])
         mr_results['Penalized Weighted Median'] = run_mr_penalized_weighted_median(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Penalized Weighted Median"])
         mr_results['Simple Mode'] = run_mr_simple_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Simple Mode"])
-        mr_results['Simple Mode (NOME)'] = run_mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Simple Mode (NOME)"])
         mr_results['Weighted Mode'] = run_mr_weighted_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Weighted Mode"])
         mr_results['Penalized Mode'] = run_mr_penalized_mode(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Penalized Mode"])
+        mr_results['Simple Mode (NOME)'] = run_mr_simple_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Simple Mode (NOME)"])
         mr_results['Weighted Mode (NOME)'] = run_mr_weighted_mode_nome(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["Weighted Mode (NOME)"])
         mr_results['PRESSO'] = run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, **mr_args["PRESSO"])
         return mr_results
@@ -167,9 +167,8 @@ def run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out):
         print('Found {} variants. Need at least 3. Exiting MR Egger.'.format(data[['BETA_EXP']].shape[0]))
         return None
     
-    change_0_to_1 = lambda x: np.sign(x.replace(0,1))
-    
-    data['BETA_OUT'] = data['BETA_OUT'] * change_0_to_1(data['BETA_EXP'])
+    to_flip = np.sign(data['BETA_EXP']) == -1
+    data['BETA_OUT'] = data['BETA_OUT'] * np.sign(data['BETA_EXP'])
     data['BETA_EXP'] = abs(data['BETA_EXP'])
     
     f = 'BETA_OUT ~ BETA_EXP'
@@ -177,7 +176,7 @@ def run_mr_egger(harmonized_data, beta_exp, beta_out, se_exp, se_out):
     fitted_model = wls(formula = f, data = data, weights = 1/data['SE_OUT']**2).fit()
     
     beta = fitted_model.params.BETA_EXP
-    standard_error = fitted_model.bse.BETA_EXP
+    standard_error = fitted_model.bse.BETA_EXP / min(1, fitted_model.scale ** 0.5)
     model_pvalue = 2*(1 - t.cdf(abs(beta/standard_error), exp_beta_len - 2)) #fitted_model.pvalues.BETA_EXP
     confidence_interval = fitted_model.conf_int().T['BETA_EXP']
     
@@ -1015,7 +1014,7 @@ def run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, outlier_t
     data['Weights'] = 1 / data[se_out] ** 2
 
     if data.shape[0] <= len(beta_exp) + 2:
-        print('Found {} variants. Need at least {}. Exiting MR PRESSO.'.format(data.shape[0], len(beta_exp) + 2))
+        print('Found {} variants. Need at least {}. Exiting MR PRESSO.'.format(data.shape[0], len(beta_exp) + 3))
         return None
 
     if len(data) >= nbDist:
@@ -1032,7 +1031,7 @@ def run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, outlier_t
     RSSexp = [getRSS_LOO(beta_out, beta_exp, random_dataset, outlier_test)
                         for random_dataset in random_data]
 
-    # Calculate p-value based on OUTLIERtest
+    # Calculate p-value based on outlier_test
     if outlier_test:
         # Assuming RSSobs is a list with the observed RSS as its first element
         GlobalTest = {'RSSobs': RSSobs[0], 'P_value': sum(rss[0] > RSSobs[0] for rss in RSSexp) / nbDist}
@@ -1067,7 +1066,7 @@ def run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, outlier_t
         # Applying Bonferroni correction
         OutlierTest['P_value'] = np.minimum(OutlierTest['P_value'] * len(data), 1.0)
     else:
-        OUTLIERtest = False     
+        outlier_test = False     
 
     formula_all = f"{beta_out} ~ -1 + {' + '.join(beta_exp)}"
     mod_all = wls(formula_all, data=data, weights=data['Weights']).fit()
@@ -1098,11 +1097,12 @@ def run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, outlier_t
                         'Distortion Coefficient': np.nan, 
                         'P_value': np.nan}
     else:
-        OUTLIERtest = False
+        outlier_test = False
     
     if GlobalTest['P_value'] == 0:
         GlobalTest['P_value_significance'] = f"<{1/nbDist}"
-        
+    else:
+        GlobalTest['P_value_significance'] = f"not <{1/nbDist}"
     
     res = {'Global Test': GlobalTest}
 
@@ -1134,8 +1134,6 @@ def run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, outlier_t
         if outlier_test == True and distortion_test == True:
             print("No outliers were identified for MR PRESSO, therefore no results will be returned for the outlier-corrected MR PRESSO.")
         res['MR_RESULTS'] = [OriginalMR]
-
-    # print(res)
 
     # Return the results dictionary
     return res
