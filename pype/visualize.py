@@ -19,7 +19,11 @@ def plot_significant_categories(idx_sig_cats, out_file, title, phewas_results, s
 		
 		output_file_cat = out_file.rsplit('.', 1)[0] + '_' + cat + '.' + out_file.rsplit('.', 1)[1]
 
-		title_cat = title + ' - ' + cat
+		if title is not None:
+			title_cat = title + ' - ' + cat
+		else:
+			title_cat = None
+
 		data_cat = phewas_results.loc[phewas_results['Category'] == cat]
 
 		manhattan_plot(data_cat, sig_thresh, 0, 1, title_cat, output_file_cat, cat, annotate, plt_top_cat = False, N = N, compare_orig_betas = cmp_orig_betas, transparency = transparency, pheno_color = color_map[cat], output_format = output_format, dpi = dpi)
@@ -237,7 +241,8 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	if len(handles) > 0:
 		ax.legend(handles = handles, loc = 'best')
 
-	plt.title(title)
+	if title is not None:
+		plt.title(title)
 	plt.axhline(y=sig, color='red', ls='--', lw = 0.5)  # plot threshold
 
 	# make it so that the labels wrap to the next line if they are too long
@@ -263,7 +268,7 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	plt.savefig(output_file, bbox_inches ='tight', format = output_format, dpi = dpi)
 	plt.close()
 
-def category_enrichment_plot(phewas_results, sig,title, output_file, output_format, dpi):
+def category_enrichment_plot(phewas_results, sig, title, output_file, output_format, dpi):
 	
 	print('Plotting bar plot for %s' % output_file)
 
@@ -319,7 +324,9 @@ def category_enrichment_plot(phewas_results, sig,title, output_file, output_form
 	
 	ax.legend(handles=legend_elements, loc='upper left')
 	plt.tight_layout()
-	plt.title(title)
+
+	if title is not None:
+		plt.title(title)
 	
 	plt.savefig(output_file, bbox_inches ='tight', format = output_format, dpi = dpi)
 	plt.close()
@@ -396,7 +403,8 @@ def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_ge
 		# draw a line at the threshold
 		plt.axhline(sig, color = 'red')
 		
-		ind_title = title + ' : ' + ind_var
+		if title is not None:
+			ind_title = title + ' : ' + ind_var
 
 		if annotate:
 			texts = []
@@ -439,11 +447,13 @@ def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_ge
 					
 					genes = '(' + genes + ')'
 
-				ind_title = ind_title + ' ' + genes
+				if title is not None:
+					ind_title = ind_title + ' ' + genes
 			
 			adjust_text(texts, arrowprops=dict(arrowstyle="->", color='black', lw=0.2))
 
-		plt.title(ind_title)
+		if title is not None:
+			plt.title(ind_title)
 		plt.savefig(output_base_name + '_' + ind_var + ext, bbox_inches ='tight', format = output_format, dpi = dpi)
 		plt.close()
 
@@ -511,6 +521,7 @@ def main():
 	parser.add_argument('--color_map', help = "Seaborn color map to use", required = False, default = 'rainbow', type = str)
 	parser.add_argument('--dpi', help = "DPI of the output plots", required = False, default = 600, type = int)
 	parser.add_argument('--output_format', help = "Format of the output plots", required = False, default = 'png', choices = ['png', 'jpg', 'svg', 'pdf'], type = str)
+	parser.add_argument('--add_default_title', help = "Add default title to the plots (i.e. PheWAS Volcano Plot (Aggregate) or PheWAS Separated Manhattan Plot (Category))", required = False, default = False, action = 'store_true')
 
 	# Manhattan Plot Specific
 	parser.add_argument('--plot_manhattan', help = "Plot the manhattan plot", required = False, default = False, action = 'store_true')
@@ -533,7 +544,6 @@ def main():
 	parser.add_argument('--beta_upper_outlier_val', help = "Upper outlier values of betas to remove for the volcano plot (for improving how the plot looks)", required=False, default = 10, type = float)
 	parser.add_argument('--logp_lower_outlier_thresh_volcano', help = "Lower outlier threshold (ratio) of points to remove for the volcano plot (for improving how the plot looks)", required=False, default = 0, type = float)
 	parser.add_argument('--logp_upper_outlier_thresh_volcano', help = "Upper outlier threshold (ratio) of points to remove for the volcano plot (for improving how the plot looks)", required=False, default = 1, type = float)
-
 
 	# Significance Level Information
 	parser.add_argument('--alpha', help = "Significance threshold", required = False, default = 0.05, type = float)
@@ -571,6 +581,7 @@ def main():
 	dpi = args.dpi
 	output_format = args.output_format
 	output_extension = "." + output_format
+	add_default_title = args.add_default_title
 
 	# Manhattan Plot Specific
 	plot_manhattan = args.plot_manhattan
@@ -677,7 +688,6 @@ def main():
 	phewas_results = phewas_results.replace([np.inf, -np.inf], np.nan)
 	phewas_results = phewas_results.fillna(phewas_results.max(numeric_only=True))
 	
-
 	# if there is a user specified mapping, then use it
 	if mapping is not None:
 		# load mapping file - two column file, first with old categories, second with new categories
@@ -794,7 +804,12 @@ def main():
 				createDirectory(category_directory, clear_old_files)
 				
 				out_file = category_directory + '/' + output_prefix + '_' + category.lower() + output_extension
-				out_title = 'PheWAS Separated Manhattan Plot (%s)' % (category.capitalize())
+
+				if add_default_title:
+					out_title = 'PheWAS Separated Manhattan Plot (%s)' % (category.capitalize())
+				else:
+					out_title = None
+
 				phewas_categories_map[category][MANHATTAN] = (out_file, out_title)
 			
 			if plot_category_enrichment:
@@ -802,7 +817,12 @@ def main():
 				createDirectory(category_directory, clear_old_files)
 				
 				out_file = category_directory + '/' + output_prefix + '_' + category.lower() + output_extension
-				out_title = 'PheWAS Separated Category Enrichment Plot (%s)' % (category.capitalize())
+
+				if add_default_title:
+					out_title = 'PheWAS Separated Category Enrichment Plot (%s)' % (category.capitalize())
+				else:
+					out_title = None
+					
 				phewas_categories_map[category][CATEGORY_ENRICHMENT] = (out_file, out_title)
 			
 			if plot_volcano:
@@ -810,7 +830,12 @@ def main():
 				createDirectory(category_directory, clear_old_files)
 
 				out_file = category_directory + '/' + output_prefix + '_' + category.lower() + output_extension
-				out_title = 'PheWAS Separated Volcano Plot (%s)' % (category.capitalize())
+
+				if add_default_title:
+					out_title = 'PheWAS Separated Volcano Plot (%s)' % (category.capitalize())
+				else:
+					out_title = None
+
 				phewas_categories_map[category][VOLCANO] = (out_file, out_title)
 
 
@@ -821,7 +846,12 @@ def main():
 
 	if plot_manhattan:
 
-		manhattan_title = ' '.join(manhattan_title) if manhattan_title is not None else 'PheWAS Aggregate Manhattan Plot (Aggregate)'
+		if add_default_title and manhattan_title is None:
+			default_title = 'PheWAS Manhattan Plot (Aggregate)'
+		else:
+			default_title = None
+
+		manhattan_title = ' '.join(manhattan_title) if manhattan_title is not None else default_title
 
 		manhattan_plot(phewas_results  = phewas_results, 
 						sig = significance_level, 
@@ -841,7 +871,12 @@ def main():
 
 	if plot_category_enrichment:
 
-		category_enrichment_title = ' '.join(category_enrichment_title) if category_enrichment_title is not None else 'PheWAS Aggregate Category Enrichment Plot (Aggregate)'
+		if add_default_title and category_enrichment_title is None:
+			default_title = 'PheWAS Aggregate Category Enrichment Plot (Aggregate)'
+		else:
+			default_title = None
+
+		category_enrichment_title = ' '.join(category_enrichment_title) if category_enrichment_title is not None else default_title
 
 		outlier_removed = phewas_results.copy(deep = True)
 		category_enrichment_plot(phewas_results = outlier_removed, 
@@ -853,7 +888,12 @@ def main():
 
 	if plot_volcano:
 
-		volcano_title = ' '.join(volcano_title) if volcano_title is not None else 'PheWAS Volcano Plot (Aggregate)'
+		if add_default_title and volcano_title is None:
+			default_title = 'PheWAS Volcano Plot (Aggregate)'
+		else:
+			default_title = None
+
+		volcano_title = ' '.join(volcano_title) if volcano_title is not None else default_title
 
 		volcano_plot(phewas_results = phewas_results,
 						sig = significance_level,
