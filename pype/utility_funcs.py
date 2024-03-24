@@ -211,9 +211,9 @@ def annotateVariantsAndGenes(top_results, variant_fields, gene_fields, out_dir):
 							outfile.write('\nHere is some information about gene {}, which was found to be close to this variant:\n\n'.format(gene))
 							outfile.write(top_hit['summary'] + '\n')
 						else:
-							outfile.write('\nUnfortunately, no summary information could be found for this gene.')
+							outfile.write('\nUnfortunately, no summary information could be found for gene {}.'.format(gene))
 					else:
-						outfile.write('\nUnfortunately, no summary information could be found for this gene.')
+						outfile.write('\nUnfortunately, no summary information could be found for gene {}.'.format(gene))
 			else:
 				variant_json = mv.getvariant(rsID, fields = variant_fields)
 
