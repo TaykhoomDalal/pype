@@ -258,14 +258,21 @@ def extract_snps_from_outcomes_internal(snps, outcome_studies, proxies = True, r
     
     assoc = pd.DataFrame()
     if len(snps) < splitsize and len(outcomes) < splitsize:
-        assoc = pd.DataFrame(associations(variantlist = snps,
-                             id = outcomes,
-                             proxies = proxies,
-                             r2 = rsq,
-                             align_alleles = align_alleles,
-                             palindromes = palindromes,
-                             maf_threshold = maf_threshold,
-                             access_token = access_token))
+
+        results = associations(variantlist = snps,
+                                id = outcomes,
+                                proxies = proxies,
+                                r2 = rsq,
+                                align_alleles = align_alleles,
+                                palindromes = palindromes,
+                                maf_threshold = maf_threshold,
+                                access_token = access_token)
+
+        if "message" in results: # this means there was an error
+            print("Error: " + results["message"])
+            exit()
+
+        assoc = pd.DataFrame(results)
     elif len(snps) > len(outcomes):
         snps_chunked = [snps[i:i + splitsize] for i in range(0, len(snps), splitsize)] 
         
@@ -275,14 +282,20 @@ def extract_snps_from_outcomes_internal(snps, outcome_studies, proxies = True, r
             if verbose:
                 print("Outcome: " + outcome)
             for snp_chunk in snps_chunked:
-                assoc.append(pd.DataFrame(associations(variantlist = snp_chunk,
-                                                       id = outcome,
-                                                       proxies = proxies,
-                                                       r2 = rsq,
-                                                       align_alleles = align_alleles,
-                                                       palindromes = palindromes,
-                                                       maf_threshold = maf_threshold,
-                                                       access_token = access_token)))
+                results = associations(variantlist = snp_chunk,
+                                        id = outcome,
+                                        proxies = proxies,
+                                        r2 = rsq,
+                                        align_alleles = align_alleles,
+                                        palindromes = palindromes,
+                                        maf_threshold = maf_threshold,
+                                        access_token = access_token)
+                
+                if "message" in results: # this means there was an error
+                    print("Error: " + results["message"])
+                    exit()
+
+                assoc.append(pd.DataFrame(results))
         assoc = pd.concat(assoc)
     else: # len(outcomes) > len(snps)
         outcomes_chunked = [outcomes[i:i + splitsize] for i in range(0, len(outcomes), splitsize)] 
@@ -293,14 +306,21 @@ def extract_snps_from_outcomes_internal(snps, outcome_studies, proxies = True, r
             if verbose:
                 print("Outcome: " + outcome)
             for outcome_chunk in outcomes_chunked:
-                assoc.append(pd.DataFrame(associations(variantlist = snp,
-                                                       id = outcome_chunk,
-                                                       proxies = proxies,
-                                                       r2 = rsq,
-                                                       align_alleles = align_alleles,
-                                                       palindromes = palindromes,
-                                                       maf_threshold = maf_threshold,
-                                                       access_token = access_token)))
+
+                results = associations(variantlist = snp,
+                                        id = outcome_chunk,
+                                        proxies = proxies,
+                                        r2 = rsq,
+                                        align_alleles = align_alleles,
+                                        palindromes = palindromes,
+                                        maf_threshold = maf_threshold,
+                                        access_token = access_token)
+
+                if "message" in results: # this means there was an error
+                    print("Error: " + results["message"])
+                    exit()
+
+                assoc.append(pd.DataFrame(results))
         assoc = pd.concat(assoc)
     if assoc.empty:
         return None
