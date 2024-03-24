@@ -170,6 +170,11 @@ def annotateVariantsAndGenes(top_results, variant_fields, gene_fields, out_dir):
 	top_results['Independent_Var'] = top_results['Independent_Var'].str.split('_').str[0]
 
 	rsIDs = top_results['Independent_Var'].unique().tolist()
+
+	if not rsIDs:
+		print('No significant variants found in the pheWAS analysis. The output directory will be left empty.')
+		return
+
 	for rsID in rsIDs:
 		print('Finding information online about variant {} and any nearby genes'.format(rsID))
 		# write the pretty print jsons to a file
