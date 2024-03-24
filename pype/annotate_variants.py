@@ -1,6 +1,7 @@
 import pandas as pd
 import argparse
-import utility_funcs
+import os
+from utility_funcs import annotate_genes, annotateVariantsAndGenes
 
 def main():
 
@@ -49,6 +50,13 @@ def main():
 		print('Error: You must specify a prefix for each variant file.')
 		exit()
 
+	if not os.path.exists(out_dir):
+		print("Directory {} does not exist. Creating now...".format(out_dir))
+		os.makedirs(out_dir, exist_ok = True) # in case it is created in between the if
+	else:
+		print("Directory {} already exists.".format(out_dir))
+	
+
 	# ----------------------------------------------------------------------------------------- #
 
 	# ---------------------------------------RUN ANNOTATIONS--------------------------------------- #
@@ -79,13 +87,13 @@ def main():
 												up = upstream, 
 												regressions = top_results, 
 												output_dir = out_dir, 
-												pheno_name = output_prefix)
+												pheno_name = prefix)
 		
 		top_results = top_results.rename(columns = {'rsID': 'Independent_Var'})
 		top_results['Independent_Var'] = old_results_rsIDs
 
 	# perform variant and gene annotation
-	utility_funcs.annotateVariantsAndGenes(top_results = top_results, variant_fields = variant_fields, gene_fields = gene_fields, out_dir = out_dir)
+	annotateVariantsAndGenes(top_results = top_results, variant_fields = variant_fields, gene_fields = gene_fields, out_dir = out_dir)
 
 
 if __name__ == '__main__':
