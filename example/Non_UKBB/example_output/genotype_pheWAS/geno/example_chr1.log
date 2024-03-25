@@ -1,0 +1,33 @@
+PLINK v2.00a6 M1 (18 Mar 2024)
+Options in effect:
+  --extract ../example_output/genotype_pheWAS/geno/example_temp_rsIDs_file.txt
+  --make-bed
+  --memory 12000
+  --out ../example_output/genotype_pheWAS/geno/example_chr1
+  --pgen ../example_data/genotype_files/chr1.bed
+  --psam ../example_data/genotype_files/chr1.fam
+  --pvar ../example_data/genotype_files/chr1.bim
+  --remove ../example_data/example_excluded_sample_IDs.txt
+  --threads 4
+
+Hostname: Taykhooms-MacBook-Pro.local
+Working directory: /Users/taykhoomdalal/Documents/Code/PYPE/pype/example/Non_UKBB/example_scripts
+Start time: Sun Mar 24 16:58:23 2024
+
+Random number seed: 1711313903
+36864 MiB RAM detected; reserving 12000 MiB for main workspace.
+Using up to 4 compute threads.
+979 samples (0 females, 979 males; 979 founders) loaded from
+../example_data/genotype_files/chr1.fam.
+83534 variants loaded from ../example_data/genotype_files/chr1.bim.
+1 binary phenotype loaded (484 cases, 495 controls).
+--extract: 1 variant remaining.
+--remove: 979 samples remaining.
+979 samples (0 females, 979 males; 979 founders) remaining after main filters.
+484 cases and 495 controls remaining after main filters.
+1 variant remaining after main filters.
+Writing ../example_output/genotype_pheWAS/geno/example_chr1.fam ... done.
+Writing ../example_output/genotype_pheWAS/geno/example_chr1.bim ... done.
+Writing ../example_output/genotype_pheWAS/geno/example_chr1.bed ... done.
+
+End time: Sun Mar 24 16:58:23 2024

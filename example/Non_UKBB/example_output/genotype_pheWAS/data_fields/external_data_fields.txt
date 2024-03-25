@@ -1,0 +1,324 @@
+1gG antigen for Herpes Simplex virus-1
+2mgG unique antigen for Herpes Simplex virus-2
+Administrative and legal statuses
+Alanine aminotransferase
+Albumin
+Alkaline phosphatase
+Anaesthetics administered during delivery
+Anaesthetics administered post delivery
+Antigen assay QC indicator
+Antigen assay date
+Apolipoprotein A
+Apolipoprotein B
+Arm fat mass (left)
+Arm fat mass (right)
+Arm fat percentage (left)
+Arm fat percentage (right)
+Arm fat-free mass (left)
+Arm fat-free mass (right)
+Arm predicted mass (left)
+Arm predicted mass (right)
+Aspartate aminotransferase
+BK VP1 antigen for Human Polyomavirus BKV
+Back pain for 3+ months
+Basophill count
+Basophill percentage
+Behaviour of cancer tumour
+Blood clot, DVT, bronchitis, emphysema, asthma, rhinitis, eczema, allergy diagnosed by doctor
+Body fat percentage
+Body mass index (BMI)
+C-reactive protein
+CagA antigen for Helicobacter pylori
+Calcium
+Cancer code, self-reported
+Cancer diagnosed by doctor
+Cancer record format
+Cancer record origin
+Carer support indicators
+Catalase antigen for Helicobacter pylori
+Chest pain due to walking ceases when standing still
+Chest pain or discomfort
+Chest pain or discomfort walking normally
+Chest pain or discomfort when walking uphill or hurrying
+Cholesterol
+Cochlear implant
+Contributory (secondary) causes of death: ICD10
+Core antigen for Hepatitis C Virus
+Creatinine
+Cystatin C
+Death record format
+Death record origin
+Delivery methods
+Delivery onset methods
+Delivery places
+Description of cause of death
+Destinations on discharge from hospital (polymorphic)
+Destinations on discharge from hospital (recoded)
+Diabetes diagnosed by doctor
+Diagnoses - main ICD10
+Diagnoses - main ICD9
+Diagnoses - secondary ICD10
+Diagnoses - secondary ICD9
+Diastolic blood pressure, automated reading
+Diastolic blood pressure, manual reading
+Direct bilirubin
+E6 antigen for Human Papillomavirus type-16
+E7 antigen for Human Papillomavirus type-16
+EA-D antigen for Epstein-Barr Virus
+EBNA-1 antigen for Epstein-Barr Virus
+Eosinophill count
+Eosinophill percentage
+Ever had bowel cancer screening
+Ever had prostate specific antigen (PSA) test
+External causes - ICD10
+Eye problems/disorders
+Facial pains for 3+ months
+Falls in the last year
+Forced expiratory volume in 1-second (FEV1)
+Forced expiratory volume in 1-second (FEV1) (pilot)
+Forced vital capacity (FVC)
+Forced vital capacity (FVC) (pilot)
+Fracture resulting from simple fall
+Fractured bone site(s)
+Fractured/broken bones in last 5 years
+Gamma glutamyltransferase
+General pain for 3+ months
+Gestational diabetes only
+Gestational diabetes only (pilot)
+Glucose
+Glycated haemoglobin (HbA1c)
+GroEL antigen for Helicobacter pylori
+HBc antigen for Hepatitis B Virus
+HBe antigen for Hepatitis B Virus
+HDL cholesterol
+HIV-1 env antigen for Human Immunodeficiency Virus
+HIV-1 gag antigen for Human Immunodeficiency Virus
+HTLV-1 env antigen for Human T-Lymphotropic Virus 1
+HTLV-1 gag antigen for Human T-Lymphotropic Virus 1
+Had major operations
+Had other major operations
+Haematocrit percentage
+Haemoglobin concentration
+Hand grip strength (left)
+Hand grip strength (right)
+Headaches for 3+ months
+Hearing aid user
+Hearing difficulty/problems
+Hearing difficulty/problems (pilot)
+Hearing difficulty/problems with background noise
+Heel bone mineral density (BMD) T-score, automated
+Heel bone mineral density (BMD) T-score, automated (left)
+Heel bone mineral density (BMD) T-score, automated (right)
+Heel bone mineral density (BMD) T-score, manual entry (left)
+Heel bone mineral density (BMD) T-score, manual entry (right)
+Heel bone ultrasound T-score, manual entry
+High light scatter reticulocyte count
+High light scatter reticulocyte percentage
+Hip circumference
+Hip pain for 3+ months
+Histology of cancer tumour
+History of psychiatric care on admission (polymorphic)
+Hospital episode type
+IE1A antigen for Human Herpesvirus-6
+IE1B antigen for Human Herpesvirus-6
+IGF-1
+Immature reticulocyte fraction
+Impedance of arm (left)
+Impedance of arm (right)
+Impedance of arm, manual entry (left)
+Impedance of arm, manual entry (right)
+Impedance of leg (left)
+Impedance of leg (right)
+Impedance of leg, manual entry (left)
+Impedance of leg, manual entry (right)
+Impedance of whole body
+Impedance of whole body, manual entry
+Inpatient record format
+Inpatient record origin
+Intended delivery places
+Intended management of patient (polymorphic)
+Intended management of patient (recoded)
+Interpolated Year when cancer first diagnosed
+Interpolated Year when non-cancer illness first diagnosed
+Interpolated Year when operation took place
+JC VP1 antigen for Human Polyomavirus JCV
+K8.1 antigen for Kaposi's Sarcoma-Associated Herpesvirus
+Knee pain for 3+ months
+L1 antigen for Human Papillomavirus type-16
+L1 antigen for Human Papillomavirus type-18
+LANA antigen for Kaposi's Sarcoma-Associated Herpesvirus
+LDL direct
+Leg fat mass (left)
+Leg fat mass (right)
+Leg fat percentage (left)
+Leg fat percentage (right)
+Leg fat-free mass (left)
+Leg fat-free mass (right)
+Leg pain on walking
+Leg pain on walking : action taken
+Leg pain on walking : effect of standing still
+Leg predicted mass (left)
+Leg predicted mass (right)
+Legal statuses
+Lipoprotein A
+Long-standing illness, disability or infirmity
+Lymphocyte count
+Lymphocyte percentage
+MC VP1 antigen for Merkel Cell Polyomavirus
+Main speciality of consultant (polymorphic)
+Main speciality of consultant (recoded)
+Mean corpuscular haemoglobin
+Mean corpuscular haemoglobin concentration
+Mean corpuscular volume
+Mean platelet (thrombocyte) volume
+Mean reticulocyte volume
+Mean sphered cell volume
+Medication for cholesterol, blood pressure or diabetes
+Medication for cholesterol, blood pressure, diabetes, or take exogenous hormones
+Medication for pain relief, constipation, heartburn
+Medication for pain relief, constipation, heartburn (pilot)
+Medication for smoking cessation, constipation, heartburn, allergies (pilot)
+Mental categories
+Method of measuring blood pressure
+Method of recording time when cancer first diagnosed
+Method of recording time when non-cancer illness first diagnosed
+Method of recording time when operation occurred
+Methods of admission to hospital (polymorphic)
+Methods of admission to hospital (recoded)
+Methods of discharge from hospital (polymorphic)
+Methods of discharge from hospital (recoded)
+Mineral and other dietary supplements
+Monocyte count
+Monocyte percentage
+Most recent bowel cancer screening
+Mouth/teeth dental problems
+Mouth/teeth dental problems (pilot)
+NS3 antigen for Hepatitis C Virus
+Neck/shoulder pain for 3+ months
+Neutrophill count
+Neutrophill percentage
+Non-cancer illness code, self-reported
+Nucleated red blood cell count
+Nucleated red blood cell percentage
+Number of operations, self-reported
+Number of self-reported cancers
+Number of self-reported non-cancer illnesses
+Number of treatments/medications taken
+OMP antigen for Helicobacter pylori
+Oestradiol
+Operation code
+Operative procedures - main OPCS4
+Operative procedures - secondary OPCS4
+Other dietary supplements (pilot)
+Other eye problems
+Other serious medical condition/disability diagnosed by doctor
+Overall acceleration average
+Overall health rating
+PCT responsible for patient data
+PCT where patients GP was registered
+Pace-maker
+Pain type(s) experienced in last month
+Patient classification on admission (polymorphic)
+Patient classification on admission (recoded)
+Peak expiratory flow (PEF)
+Peak expiratory flow (PEF) (pilot)
+Phosphate
+Platelet count
+Platelet crit
+Platelet distribution width
+PorB antigen for Chlamydia trachomatis
+Pregnant
+Pulse rate
+Pulse rate (during blood-pressure measurement)
+Pulse rate, automated reading
+Pulse wave Arterial Stiffness index
+Reason for glasses/contact lenses
+Red blood cell (erythrocyte) count
+Red blood cell (erythrocyte) distribution width
+Reported occurrences of cancer
+Resuscitation methods
+Reticulocyte count
+Reticulocyte percentage
+Rheumatoid factor
+SHBG
+Sex of baby
+Shortness of breath walking on level ground
+Sitting height
+Source of NSTEMI report
+Source of STEMI report
+Source of intracerebral haemorrhage report
+Source of ischaemic stroke report
+Source of myocardial infarction report
+Source of stroke report
+Source of subarachnoid haemorrhage report
+Sources of admission to hospital (polymorphic)
+Sources of admission to hospital (recoded)
+Spells in hospital
+Standing height
+Status of baby at birth
+Statuses of person conducting delivery
+Stomach/abdominal pain for 3+ months
+Surgery on leg arteries (other than for varicose veins)
+Surgery/amputation of toe or leg
+Systolic blood pressure, automated reading
+Systolic blood pressure, manual reading
+Taking other prescription medications
+Testosterone
+Time since last prostate specific antigen (PSA) test
+Tinnitus
+Total bilirubin
+Total protein
+Treatment speciality of consultant (polymorphic)
+Treatment speciality of consultant (recoded)
+Treatment/medication code
+Triglycerides
+Trunk fat mass
+Trunk fat percentage
+Trunk fat-free mass
+Trunk predicted mass
+Type of cancer: ICD10
+Type of cancer: ICD9
+U14 antigen for Human Herpesvirus-7
+Underlying (primary) cause of death: ICD10
+Urate
+UreA antigen for Helicobacter pylori
+Urea
+VCA p18 antigen for Epstein-Barr Virus
+VacA antigen for Helicobacter pylori
+Vascular/heart problems diagnosed by doctor
+Vitamin D
+Vitamin and mineral supplements
+Vitamin and mineral supplements (pilot)
+Vitamin supplements (pilot)
+Waist circumference
+Wears glasses or contact lenses
+Weight
+Weight change compared with 1 year ago
+Wheeze or whistling in the chest in last year
+Which eye(s) affected by astigmatism
+Which eye(s) affected by diabetes-related eye disease
+Which eye(s) affected by glaucoma
+Which eye(s) affected by hypermetropia (long sight)
+Which eye(s) affected by macular degeneration
+Which eye(s) affected by myopia (short sight)
+Which eye(s) affected by other eye condition
+Which eye(s) affected by other serious eye condition
+Which eye(s) affected by presbyopia
+Which eye(s) affected by strabismus (squint)
+White blood cell (leukocyte) count
+Whole body fat mass
+Whole body fat-free mass
+Whole body water mass
+ZEBRA antigen for Epstein-Barr Virus
+gE / gI antigen for Varicella Zoster Virus 
+momp A antigen for Chlamydia trachomatis
+momp D antigen for Chlamydia trachomatis
+p101 k antigen for Human Herpesvirus-6
+p22 antigen for Toxoplasma gondii
+pGP3 antigen for Chlamydia trachomatis
+pp 28 antigen for Human Cytomegalovirus
+pp 52 antigen for Human Cytomegalovirus
+pp150 Nter antigen for Human Cytomegalovirus
+sag1 antigen for Toxoplasma gondii
+tarp-D F1 antigen for Chlamydia trachomatis
+tarp-D F2 antigen for Chlamydia trachomatis

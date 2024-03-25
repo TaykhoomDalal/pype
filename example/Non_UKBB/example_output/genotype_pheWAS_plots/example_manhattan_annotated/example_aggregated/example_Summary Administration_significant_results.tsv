@@ -1,0 +1,2 @@
+PheWAS_Category	Data_Field	Independent_Var	Samples	-log(p)	p-val	beta	std_error	Gene	Category	Original_beta	Original_pval	Direction
+example	Methods of discharge from hospital (recoded)	rs6426192	794/969	9.236406905551236	0.0	399.3930042746515	0.596335395931262	DDX11L1, DDX11L17	Summary Administration	0.015	1.3e-09	S

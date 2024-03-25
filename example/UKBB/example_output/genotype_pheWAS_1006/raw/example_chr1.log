@@ -1,0 +1,22 @@
+PLINK v2.00a6 M1 (18 Mar 2024)
+Options in effect:
+  --bfile ../example_output/genotype_pheWAS_1006/geno/example_chr1
+  --export A
+  --out ../example_output/genotype_pheWAS_1006/raw/example_chr1
+
+Hostname: Taykhooms-MacBook-Pro.local
+Working directory: /Users/taykhoomdalal/Documents/Code/PYPE/pype/example/UKBB/example_scripts
+Start time: Sun Mar 24 17:05:45 2024
+
+Random number seed: 1711314345
+36864 MiB RAM detected; reserving 18432 MiB for main workspace.
+Using up to 14 threads (change this with --threads).
+979 samples (0 females, 979 males; 979 founders) loaded from
+../example_output/genotype_pheWAS_1006/geno/example_chr1.fam.
+1 variant loaded from
+../example_output/genotype_pheWAS_1006/geno/example_chr1.bim.
+1 binary phenotype loaded (484 cases, 495 controls).
+--export A: ../example_output/genotype_pheWAS_1006/raw/example_chr1.raw
+written.
+
+End time: Sun Mar 24 17:05:45 2024

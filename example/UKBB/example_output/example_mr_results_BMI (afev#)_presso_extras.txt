@@ -1,0 +1,4 @@
+MR Presso Global Test:
+	RSSobs: 32.120231836976956
+	P_value: 0.185
+	P_value Significance: not <0.001
