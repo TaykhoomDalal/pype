@@ -8,10 +8,10 @@ from bs4 import BeautifulSoup
 
 def main():
 	parser = argparse.ArgumentParser(description='Annotate results file with category labels')
-	parser.add_argument('-i', '--input_files', help='Input results file', required=True, action = 'append')
-	parser.add_argument('-c', '--categories', help='Category to parse', required=True, action = 'append')
-	parser.add_argument('-s', '--singulars', help = 'Singular category name', required = True, action = 'append')
-	parser.add_argument('-o', '--output_file', help='Output file', required=True)
+	parser.add_argument('-i', '--input_files', help='Aggregate pheWAS results file (output of run_pheWAS for a specific category of phenotypes).', required=True, action = 'append')
+	parser.add_argument('-c', '--categories', help='The category number listed in UKBB (i.e. 1006, 1019, 17518, etc)', required=True, action = 'append')
+	parser.add_argument('-s', '--singulars', help = 'Whether the associated category has phenotypes from multiple sub-categories. Physical measure summary (1006) is FALSE for this, while Blood biochemistry (17518) is TRUE for this.', required = True, action = 'append')
+	parser.add_argument('-o', '--output_file', help='Output aggregate file containg pheWAS results from every specified input_file, annotated with category and description information.', required=True)
 
 	args = parser.parse_args()
 	input_file = args.input_files
@@ -28,7 +28,7 @@ def main():
 	for input_file, category, singular in zip(input_file, categories_list, singular_list):
 
 		# make the output file name
-		output_file = input_file.rsplit('.')[0] + '_with_cat.tsv'
+		output_file = input_file.rsplit('.', 1)[0] + '_with_cat.tsv'
 
 		print('Parsing url for category ' + category + ' information')
 
@@ -44,7 +44,7 @@ def main():
 		if singular == "True":
 			ARROW = unescape("&#9205;")
 
-			# this is bad but it works - basically find the section of the html document where the category exists
+			# find the section of the html document where the category exists
 			# based on observation, it always comes right after a \n, so split on that, and take the second element,
 			# since the first element contains the Catgory X words, and the second element contains the category
 			# then split on the arrow (if it exists) and take the first element, removing any leading or trailing whitespace
@@ -72,7 +72,7 @@ def main():
 		df.to_csv(output_file, sep='\t', index=False)
 
 		print('Finished parsing url for ' + category + ' information')
-		print('Output file: ' + output_file + '\n')
+		print('Wrote output file: ' + output_file + '\n')
 
 		aggregate_results = pd.concat([aggregate_results, df])
 
@@ -90,7 +90,7 @@ def main():
 	aggregate_results.to_csv(aggregate_file, sep='\t', index=False)
 
 	print('Finished writing aggregate results file')
-	print('Output file: ' + aggregate_file + '\n')
+	print('Wrote output file: ' + aggregate_file + '\n')
 
 if __name__ == '__main__':
 	main()
