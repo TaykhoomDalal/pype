@@ -6,6 +6,8 @@ import mr_utils
 import argparse
 import pandas as pd
 
+expected_ieugwas_column_names = ["rsID", "CHR", "Effect", "BETA", "P", "SE", "N"]
+
 def save_presso_extras(presso_file_path, results, presso_args):
 
 	with open(presso_file_path, 'w') as file:
@@ -215,7 +217,8 @@ def main():
 					data = {}
 
 					for phenotype in external_gwas_data['phenotype'].unique():
-						external_gwas_data_i = external_gwas_data.loc[external_gwas_data['phenotype'] == phenotype].copy()
+						external_gwas_data_i = external_gwas_data.loc[external_gwas_data['phenotype'] == phenotype].copy()[expected_ieugwas_column_names]
+
 						data[phenotype] = mr_utils.harmonize(exposure_variants_i, external_gwas_data_i, '_' + exposure_pheno, '_' + phenotype)
 
 						print('Running MR ({}) for Exposure ({}) against Outcome ({})'.format(mr_string, exposure_pheno, phenotype))
