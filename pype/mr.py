@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from statsmodels.formula.api import wls
+from patsy.builtins import Q
 from scipy.fft import fft, ifft
 from scipy.interpolate import interp1d
 from scipy.stats import norm, chi2, t, gaussian_kde, median_abs_deviation
@@ -932,7 +933,7 @@ def getRSS_LOO(BetaOutcome, BetaExposure, data, returnIV):
 
 def getRandomData(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data):
     # Prepare the formula for linear regression
-    formula = f"{BetaOutcome} ~ -1 + {' + '.join(BetaExposure)}"
+    formula = f"Q('{BetaOutcome}') ~ -1 + " + " + ".join([f"Q('{exp}')" for exp in BetaExposure])
     
     # Run leave-one-out regression and predict the outcome for the left-out observation
     predictions = []
@@ -957,7 +958,7 @@ def getRandomData(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data):
     
     return dataRandom
 
-def getRandomBias(BetaOutcome, BetaExposure, SdOutcome, SdExposure, data, refOutlier):
+def getRandomBias(BetaOutcome, BetaExposure, data, refOutlier):
     indices = list(refOutlier) + [np.random.choice(list(set(range(len(data))) - set(refOutlier))) for _ in range(len(data) - len(refOutlier))]
     formula = f"{BetaOutcome} ~ -1 + {' + '.join(BetaExposure)}"
     data_subset = data.iloc[indices[:len(indices) - len(refOutlier)]]
@@ -1068,7 +1069,7 @@ def run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, outlier_t
     else:
         outlier_test = False     
 
-    formula_all = f"{beta_out} ~ -1 + {' + '.join(beta_exp)}"
+    formula_all = f"Q('{beta_out}') ~ -1 + " + " + ".join([f"Q('{exp}')" for exp in beta_exp])
     mod_all = wls(formula_all, data=data, weights=data['Weights']).fit()
     
     if distortion_test and outlier_test:
@@ -1076,7 +1077,7 @@ def run_mr_presso(harmonized_data, beta_exp, beta_out, se_exp, se_out, outlier_t
     
         if len(refOutlier) > 0:
             if len(refOutlier) < len(data):
-                BiasExp = [getRandomBias(beta_out, beta_exp, se_out, se_exp, data, refOutlier) for _ in range(nbDist)]
+                BiasExp = [getRandomBias(beta_out, beta_exp, data, refOutlier) for _ in range(nbDist)]
                 BiasExp = pd.DataFrame(BiasExp)
                 
                 data_noOutliers = data.drop(refOutlier)
