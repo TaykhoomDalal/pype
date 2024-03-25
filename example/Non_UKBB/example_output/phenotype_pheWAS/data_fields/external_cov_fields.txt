@@ -1,0 +1,7 @@
+Sex
+Year of birth
+Month of birth
+Date of attending assessment centre
+Ethnic background
+Genetic sex
+Genetic principal components

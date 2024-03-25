@@ -1,0 +1,2 @@
+PheWAS_Category	Ethnicity	Description	Data_Field	Independent_Var	Samples	-log(p)	p-val	beta	std_error	Category
+example	White	Glycated haemoglobin (HbA1c)	f.30750.0.0	f.90012.0.0	201/916	3.2518878898705217	0.0005599021177169	-0.3433155158292583	0.0756974883690449	Blood biochemistry

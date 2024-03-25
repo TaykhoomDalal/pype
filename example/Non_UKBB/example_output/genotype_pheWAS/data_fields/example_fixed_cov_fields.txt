@@ -1,0 +1,6 @@
+Ethnic background
+Genetic principal components
+Genetic sex
+Month of birth
+Sex
+Year of birth
