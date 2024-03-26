@@ -30,7 +30,7 @@ example	White	Destinations on discharge from hospital (polymorphic)	f.41211.0.0	
 example	White	Methods of admission to hospital (polymorphic)	f.41212.0.1	f.21001.0.0	527/916	0.3312952678041678	0.4663422161163413	-0.1493836202542277	0.2044131314609545	Summary Administration
 example	White	Intended management of patient (recoded)	f.41244.0.1	f.21001.0.0	426/916	0.33108873949314	0.466564037434929	5.316578998346233	7.266838204164952	Summary Administration
 example	White	Patient classification on admission (polymorphic)	f.41209.0.0	f.90012.0.0	201/916	0.3284838714252109	0.4693708652145476	-0.0275843422390918	0.0360662876206299	Summary Administration
-example	White	Intended management of patient (recoded)	f.41244.0.0	f.21001.0.0	690/916	0.3126792073133845	0.4867666242959798	1.927417725906148	2.7651590809525373	Summary Administration
+example	White	Intended management of patient (recoded)	f.41244.0.0	f.21001.0.0	690/916	0.3126792073133845	0.4867666242959798	1.9274177259061476	2.7651590809525373	Summary Administration
 example	White	Sources of admission to hospital (recoded)	f.41251.0.0	f.21001.0.0	755/916	0.2732473419921356	0.5330312338862807	-0.0011924974865085	0.0019093293422887	Summary Administration
 example	White	Main speciality of consultant (polymorphic)	f.41207.0.3	f.21001.0.0	220/916	0.2507154223724775	0.56141573116252	-3.826094239495192	6.519605625928612	Summary Administration
 example	White	Patient classification on admission (recoded)	f.41247.0.0	f.21001.0.0	744/916	0.232734166493618	0.5851481462259469	3.816034103535663	6.978144957841129	Summary Administration
@@ -54,7 +54,7 @@ example	White	Reported occurrences of cancer	f.40009.0.0	f.21001.0.0	171/916	0.0
 example	White	Destinations on discharge from hospital (recoded)	f.41248.0.0	f.21001.0.0	745/916	0.056433706020229	0.8781451235498217	0.0003549204098575	0.0023118170424747	Summary Administration
 example	White	Carer support indicators	f.41214.0.1	f.21001.0.0	179/916	0.0551615148454925	0.8807212703776794	-0.3932420362676603	2.581542379742417	Summary Psychiatric
 example	White	Methods of admission to hospital (recoded)	f.41249.0.2	f.21001.0.0	307/916	0.0510249818053556	0.889149970050906	3.3580277818114004	23.94686319561524	Summary Administration
-example	White	Sources of admission to hospital (recoded)	f.41251.0.0	f.90012.0.0	201/916	0.0486057391174544	0.8941168118444074	2.8213542613286797e-14	2.0607578043831573e-13	Summary Administration
+example	White	Sources of admission to hospital (recoded)	f.41251.0.0	f.90012.0.0	201/916	0.0486057391174544	0.8941168118444074	2.821354261328679e-14	2.0607578043831573e-13	Summary Administration
 example	White	Main speciality of consultant (recoded)	f.41245.0.0	f.90012.0.0	201/916	0.0463974490209968	0.8986747737094504	-2.418668715665884	17.47292928980445	Summary Administration
 example	White	Patient classification on admission (recoded)	f.41247.0.0	f.90012.0.0	201/916	0.0411689250686866	0.9095594176351136	1.5830271245451883	13.251093341997905	Summary Administration
 example	White	Intended management of patient (polymorphic)	f.41206.0.0	f.21001.0.0	688/916	0.0330287721070769	0.9267684227290792	0.0021137151823241	0.0229647590529561	Summary Administration
