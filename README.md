@@ -109,6 +109,8 @@ By running the script below, we can also run an MR analysis using a separate set
 
 [run_mr.sh](example/UKBB/example_scripts/run_mr.sh)
 
+**Note**: There is currently an issue I was facing with using the IEUGWASpy online data repository for grabbing variants for Mendelian Randomization that prevents the user from using this resource for MR. I have raised [an issue](https://github.com/MRCIEU/ieugwaspy/issues/7#issue-2204090811) on their page with a potential solution, so please visit that if you are having the same issue. If you have your outcome variants locally, this will not affect your use of the script, only if you try to specify traits to grab variants for (using --traits). 
+
 ## Non_UKBB
 
 ### Non_UKBB PheWAS
@@ -149,7 +151,7 @@ This file should have individuals on the rows (listing individual IDs under the 
 
 --bfiles_directory /path/to/bfiles/directory
 
-This is the directory where the BIM/BED/FAM files are located. For more information on this data type, please see the [plink documentation](https://www.cog-genomics.org/plink/2.0/formats#bed)This data should come directly from the biobank data source. If the data is not in this format (for example BGEN), it can be converted using the plink2 command line tool using the follow script for each bgen file for each chromosome:
+This is the directory where the BIM/BED/FAM files are located. For more information on this data type, please see the [plink documentation](https://www.cog-genomics.org/plink/2.0/formats#bed). This data should come directly from the biobank data source. If the data is not in this format (for example BGEN), it can be converted using the plink2 command line tool using the follow script for each bgen file for each chromosome:
 
 ```bash
 plink2 --bgen /path/to/ukb_chr$1.bgen ref-last \
