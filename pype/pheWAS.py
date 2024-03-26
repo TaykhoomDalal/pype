@@ -115,7 +115,7 @@ def run_phewas(phenotypes, independent_variables, non_cov_pheno_list, reg, covar
 		ind_var_i = independent_variables.iloc[:, [v]]
 
 		# its possible that there are NaN values in the ind_var data, so we need to drop them
-		ind_var_non_nan_samples_num = ind_var_i.shape[0] - ind_var_i.isnull().sum()[0]
+		ind_var_non_nan_samples_num = ind_var_i.shape[0] - ind_var_i.isnull().sum().iloc[0]
 
 		# if covariates is non empty, then check if we have a lot fewer observations (samples) than variables 
 		# (covariates + genotype), if so, then there is no unique solution to OLS (unless we use regularization - user parameter)
