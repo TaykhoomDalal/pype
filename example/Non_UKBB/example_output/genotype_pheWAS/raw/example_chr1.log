@@ -6,9 +6,9 @@ Options in effect:
 
 Hostname: Taykhooms-MacBook-Pro.local
 Working directory: /Users/taykhoomdalal/Documents/Code/PYPE/pype/example/Non_UKBB/example_scripts
-Start time: Sun Mar 24 16:58:23 2024
+Start time: Mon Mar 25 21:18:19 2024
 
-Random number seed: 1711313903
+Random number seed: 1711415899
 36864 MiB RAM detected; reserving 18432 MiB for main workspace.
 Using up to 14 threads (change this with --threads).
 979 samples (0 females, 979 males; 979 founders) loaded from
@@ -17,4 +17,4 @@ Using up to 14 threads (change this with --threads).
 1 binary phenotype loaded (484 cases, 495 controls).
 --export A: ../example_output/genotype_pheWAS/raw/example_chr1.raw written.
 
-End time: Sun Mar 24 16:58:23 2024
+End time: Mon Mar 25 21:18:19 2024

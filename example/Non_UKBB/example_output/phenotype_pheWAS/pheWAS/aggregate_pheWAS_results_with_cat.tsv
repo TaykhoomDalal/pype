@@ -1,7 +1,7 @@
 PheWAS_Category	Data_Field	Independent_Var	Samples	-log(p)	p-val	beta	std_error	Category
 example	Albumin	Body mass index (BMI)	828/969	2.696736784288175	0.0020103108457714	-0.0612762928346648	0.0197707834006053	Blood biochemistry
 example	Mouth/teeth dental problems	Body mass index (BMI)	959/969	2.491527061178069	0.0032245783874319	0.1069185862531098	0.036200502975308	Mouth
-example	Hearing difficulty/problems	Body mass index (BMI)	959/969	2.418552667571764	0.0038145853140098	-0.0099826320518128	0.0034414052284252	Hearing
+example	Hearing difficulty/problems	Body mass index (BMI)	959/969	2.4185526675717637	0.0038145853140098	-0.0099826320518128	0.0034414052284252	Hearing
 example	Pulse rate, automated reading	Body mass index (BMI)	909/969	2.2859658226481	0.0051764756727574	-0.221238406936527	0.0789243714074605	Blood pressure
 example	Triglycerides	Body mass index (BMI)	909/969	2.2491352423327795	0.0056346216245242	0.0196348039294567	0.007074395430325	Blood biochemistry
 example	Diabetes diagnosed by doctor	Body mass index (BMI)	967/969	2.173899090066211	0.0067004027767466	-0.0044588666436942	0.0016406743241404	Medical conditions
@@ -158,7 +158,7 @@ example	Mean corpuscular haemoglobin concentration	Body mass index (BMI)	935/969
 example	Diabetes diagnosed by doctor	Overall acceleration average	215/969	0.4139906484115068	0.3854866581944121	0.0014809965603864	0.0017025706183609	Medical conditions
 example	Reason for glasses/contact lenses	Overall acceleration average	190/969	0.413638450922293	0.3857994010566467	-0.0244002353160835	0.0277375165048828	Eyesight
 example	Trunk fat-free mass	Body mass index (BMI)	955/969	0.4077682764375379	0.3910494897635981	-0.0350649481252531	0.0408617870166614	Body composition by impedance
-example	Histology of cancer tumour	Body mass index (BMI)	165/969	0.4053574325547446	0.3932263095674736	5.235880061150724	6.114044832830408	Cancer register
+example	Histology of cancer tumour	Body mass index (BMI)	165/969	0.4053574325547446	0.3932263095674736	5.2358800611507235	6.114044832830408	Cancer register
 example	Destinations on discharge from hospital (recoded)	Body mass index (BMI)	788/969	0.4014850702699629	0.3967481676986	-1.6397630211788832	1.9338164780820708	Summary Administration
 example	Treatment/medication code	Overall acceleration average	215/969	0.3988456656538081	0.3991667282283224	2911800.8360336823	3442938.726508407	Medications
 example	Long-standing illness, disability or infirmity	Overall acceleration average	215/969	0.3932073893263442	0.4043827400578492	0.0029927602665797	0.0035811709331201	General health
@@ -211,7 +211,7 @@ example	Headaches for 3+ months	Overall acceleration average	215/969	0.273299567
 example	Sources of admission to hospital (polymorphic)	Overall acceleration average	215/969	0.2728446894864078	0.5335256585133001	-0.0193911494905849	0.0310745453353258	Summary Administration
 example	Total bilirubin	Overall acceleration average	215/969	0.27264568657007	0.5337701872732092	-0.0195410133264871	0.0313424118379859	Blood biochemistry
 example	Impedance of arm (left)	Body mass index (BMI)	956/969	0.2721825130496039	0.5343397549466493	-0.2344263059756378	0.377110729672604	Body composition by impedance
-example	Main speciality of consultant (recoded)	Body mass index (BMI)	725/969	0.2631756836163967	0.5455371322352093	2.008576579410453	3.3212259044695527	Summary Administration
+example	Main speciality of consultant (recoded)	Body mass index (BMI)	725/969	0.2631756836163967	0.5455371322352093	2.0085765794104535	3.3212259044695527	Summary Administration
 example	Leg fat percentage (right)	Overall acceleration average	215/969	0.257304073672826	0.5529628136892706	0.0476669740824975	0.080192598234271	Body composition by impedance
 example	Forced expiratory volume in 1-second (FEV1)	Overall acceleration average	215/969	0.2570572137024892	0.5532772159957008	-0.0034965887262243	0.0058862853450288	Spirometry
 example	Arm predicted mass (right)	Overall acceleration average	215/969	0.25411738707376	0.5570351654714925	-0.0033519518993941	0.0056976100599805	Body composition by impedance
@@ -225,7 +225,7 @@ example	Fractured bone site(s)	Overall acceleration average	100/969	0.2415541723
 example	Mineral and other dietary supplements	Overall acceleration average	215/969	0.2366816299443455	0.5798536163525185	-0.0172883020991016	0.0311744234967491	Medication
 example	Leg pain on walking	Overall acceleration average	215/969	0.2350849710799085	0.5819893385881585	0.0030421262022692	0.0054947546237849	Claudication and peripheral artery disease
 example	Number of operations, self-reported	Body mass index (BMI)	967/969	0.2329270064769601	0.5848883802952494	0.0059468593408206	0.0108825982648062	Operations
-example	High light scatter reticulocyte count	Overall acceleration average	215/969	0.2328947732685806	0.5849317921493471	-4.135222987174652e-05	7.557161484512368e-05	Blood count
+example	High light scatter reticulocyte count	Overall acceleration average	215/969	0.2328947732685806	0.5849317921493471	-4.135222987174651e-05	7.557161484512368e-05	Blood count
 example	Carer support indicators	Overall acceleration average	215/969	0.2328107236395382	0.5850450057862286	-0.2167886794233173	0.3959881271489689	Summary Psychiatric
 example	Weight change compared with 1 year ago	Body mass index (BMI)	967/969	0.2321504170112393	0.5859351919034966	-0.0046434086800013	0.0085210700456581	General health
 example	Cystatin C	Body mass index (BMI)	911/969	0.2272052833481648	0.5926451254558127	0.0006426849365559	0.0012008088718264	Blood biochemistry
