@@ -115,7 +115,7 @@ By running the script below, we can also run an MR analysis using a separate set
 
 ### Non_UKBB PheWAS
 
-The process for running a PheWAS for non-UKBB data is very similar, but with some slight modifications. Since the UKBB is very standardized, it is easy to do things like query for phenotype descriptions and categories, or grab phenotypes that are specifically associated with a health category, but with an external data source, it is not as clear cut. However, you can still do almost all of the same analyses on non-UKBB data using PYPE, but it will require some adaptation for your data.
+The process for running a PheWAS for non-UKBB data is very similar to with UKBB data, but with some slight modifications. Since the UKBB is very standardized, it is easy to do things like query for phenotype descriptions and categories, or grab phenotypes that are specifically associated with a health category, but with an external data source, it is not as clear cut. However, you can still do almost all of the same analyses on non-UKBB data using PYPE, but it will require some adaptation for your data.
 
 For the following examples, we will utilize our own custom phenotype file which was generated using the following [script](example/Non_UKBB/example_data/convert_UKBB_to_general.py). Essentially, I took the phenotype file from the UKBB example, converted the columns data fields into strings which represent the phenotype. For example, the file now looks like the following:
 
