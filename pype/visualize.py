@@ -13,7 +13,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from utility_funcs import multiple_testing_correction, annotate_genes
 
-def plot_significant_categories(idx_sig_cats, out_file, title, phewas_results, sig_thresh, annotate, N, cmp_orig_betas, transparency, color_map, output_format, dpi):
+def plot_significant_categories(idx_sig_cats, out_file, title, phewas_results, sig_thresh, annotate, N, cmp_orig_betas, transparency, color_map, output_format, height, width, dpi):
 	# for each category in the significant categories
 	for cat, _ in idx_sig_cats:
 		
@@ -26,15 +26,15 @@ def plot_significant_categories(idx_sig_cats, out_file, title, phewas_results, s
 
 		data_cat = phewas_results.loc[phewas_results['Category'] == cat]
 
-		manhattan_plot(data_cat, sig_thresh, 0, 1, title_cat, output_file_cat, cat, annotate, plt_top_cat = False, N = N, compare_orig_betas = cmp_orig_betas, transparency = transparency, pheno_color = color_map[cat], output_format = output_format, dpi = dpi)
+		manhattan_plot(data_cat, sig_thresh, 0, 1, title_cat, output_file_cat, cat, annotate, plt_top_cat = False, N = N, compare_orig_betas = cmp_orig_betas, transparency = transparency, pheno_color = color_map[cat], output_format = output_format, height = height, width = width, dpi = dpi)
 
-def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, annotate, plt_top_cat, N, compare_orig_betas, transparency, pheno_color, output_format, dpi):
+def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, annotate, plt_top_cat, N, compare_orig_betas, transparency, pheno_color, output_format, height, width, dpi):
 	"""
 	Function to plot manhattan plots from PheWAS results
 	"""
 
 	# save the significant results to a file (before filtering out the super low p-values)
-	all_top = phewas_results.loc[phewas_results["-log(p)"] >= sig].groupby('Category').apply(lambda x : x.sort_values(by = "-log(p)", ascending = False).reset_index(drop = True))
+	all_top = phewas_results[phewas_results["-log(p)"] >= sig].sort_values(by=["Category", "-log(p)"], ascending=[True, False]).reset_index(drop = True)
 	all_top.to_csv(output_file.rsplit('.', 1)[0] + '_significant_results.tsv', sep = '\t', index = False)
 
 	# remove extreme outliers in order to be able to visualize the data more coherently
@@ -67,9 +67,46 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	# get the indices of the significant categories
 	indices_of_significant_cats = [(cat, medians['Category'].tolist().index(cat)) for cat in sig_cats]
 
-	# if there are no significant categories, then don't plot anything
 	if len(indices_of_significant_cats) == 0:
-		print('No significant categories found')
+		
+		# get the list of categories, to map the colors to the categories
+		categories = outlier_removed_phewas_results['Category'].unique()
+		n_categories = len(categories)
+
+		non_significant_results = outlier_removed_phewas_results.loc[outlier_removed_phewas_results["-log(p)"] < sig]
+
+		color_map = {}
+		if n_categories > 1:
+			# List of RGB triplets
+			colors = sns.color_palette(pheno_color, n_categories)
+			# Map label to RGB
+			color_map = dict(zip(categories, colors))
+			size = 5
+		else:
+			# otherwise there is only one category, so just use the color passed through the pheno_color argument
+			color_map[pheno] = pheno_color
+			size = 7
+
+		plt.figure(figsize=(width, height), dpi=dpi)
+		ax = sns.stripplot(x = 'Category', y = "-log(p)", data = non_significant_results, hue = 'Category', palette = color_map, jitter=0.45, size = size, order = categories, legend = False, linewidth=0.2, **{'alpha': transparency})
+
+		if title is not None:
+			plt.title(title)
+		plt.axhline(y=sig, color='red', ls='--', lw = 0.5)  # plot threshold
+
+		if n_categories > 5:
+			# and rotate/shrink the labels
+			plt.xticks(rotation = 90)
+			ax.tick_params(axis='x', which='major', labelsize=5)
+
+		ax.set_xmargin(0.1)
+		ax.autoscale_view()
+
+		ax.set_ylim([None, ax.get_ylim()[1]*1.15])
+
+		# finally save the figure
+		plt.savefig(output_file, bbox_inches ='tight', format = output_format, dpi = dpi)
+		plt.close()
 		return
 
 	# sort the categories by the median list so we can plot in the right order
@@ -93,14 +130,14 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	if plt_top_cat:
 		# sort the 
 
-		plot_significant_categories(indices_of_significant_cats, output_file, title, phewas_results.sort_values(by='Category', key = sorter), sig, annotate, N, compare_orig_betas, transparency, color_map, output_format, dpi)
+		plot_significant_categories(indices_of_significant_cats, output_file, title, phewas_results.sort_values(by='Category', key = sorter), sig, annotate, N, compare_orig_betas, transparency, color_map, output_format, height, width, dpi)
 	
 	if outlier_removed_phewas_results.empty:
 		print('No significant results found for this phenotype')
 		return
 	
 	# get ready to plot
-	plt.figure(figsize=(15, 8), dpi=500)
+	plt.figure(figsize=(width, height), dpi=dpi)
 
 	# data for plotting
 	significant_results = outlier_removed_phewas_results.loc[outlier_removed_phewas_results["-log(p)"] >= sig]
@@ -141,7 +178,7 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 							Line2D([0], [0], color = 'orange', marker = '^', linestyle='None',label = 'Pos/Neg', alpha = transparency)])
 		else:
 			# Plot the -log(p) values against the category values, with the colors mapped to the categories, with up arrow == the direction of the beta value is positive
-			ax = sns.stripplot(x = 'Category', y = "-log(p)", data = significant_phewas_pos_beta, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'marker': '^', 'alpha': transparency})
+			ax = sns.stripplot(x = 'Category', y = "-log(p)", data = significant_phewas_pos_beta, hue = 'Category', palette = color_map, jitter=0.45, size = size, order = categories, legend = False, linewidth=0.2, **{'marker': '^', 'alpha': transparency})
 			handles.append(Line2D([0], [0], color = color, marker = '^', linestyle='None',label = 'Positive beta', alpha = transparency))
 	
 	if not significant_phewas_neg_beta.empty:
@@ -153,12 +190,11 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 							Line2D([0], [0], color = 'purple', marker = 'v', linestyle='None', label = 'Neg/Pos', alpha = transparency)])
 		else:
 			# Plot the -log(p) values against the category values, with the colors mapped to the categories, with down arrow == the direction of the beta value is negative
-			ax = sns.stripplot(x = 'Category', y = "-log(p)", data = significant_phewas_neg_beta, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'marker': 'v', 'alpha': transparency})
+			ax = sns.stripplot(x = 'Category', y = "-log(p)", data = significant_phewas_neg_beta, hue = 'Category', palette = color_map, jitter=0.45, size = size, order = categories, legend = False, linewidth=0.2, **{'marker': 'v', 'alpha': transparency})
 			handles.append(Line2D([0], [0], color = color, marker = 'v', linestyle='None', label = 'Negative beta', alpha = transparency))
 
 	# if we need to add annotations to the plot
 	if annotate is not None:
-		
 		
 		if n_categories > 1: # if we are plotting more than 1 category, only annotate top 2 points
 			annotate_top = 2
@@ -169,7 +205,7 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 			raise ValueError("n_categories must be greater than 0")
 
 		# get top N variants for each category
-		top_N = significant_results.groupby('Category').apply(lambda x : x.sort_values(by = "-log(p)", ascending = False).head(annotate_top).reset_index(drop = True))
+		top_N = significant_results.sort_values(by=["Category", "-log(p)"], ascending=[True, False]).groupby('Category').head(annotate_top).reset_index(drop=True)
 		
 		collections = ax.collections
 
@@ -225,7 +261,11 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 				if n_categories > 1:
 					texts.append(ax.text(x, y, annotation, ha = 'center', va = 'center', fontsize = 3))
 				else:
-					desc = top.iloc[index]['Description']
+					if 'Description' in top.columns:
+						desc = top.iloc[index]['Description']
+					else:
+						desc = top.iloc[index]['Data_Field'].replace('_', ' ')
+
 					desc = textwrap.fill(desc, 35, break_long_words=False)
 					annotation = (annotation + '\n' + desc ).strip()
 					
@@ -235,7 +275,7 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	
 	if not non_significant_results.empty:
 		# plot for the values below the significance level (should be circles)
-		ax = sns.stripplot(x = 'Category', y = "-log(p)", data = non_significant_results, palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, **{'alpha': transparency})
+		ax = sns.stripplot(x = 'Category', y = "-log(p)", data = non_significant_results, hue = 'Category', palette = color_map, jitter=0.45, size = size, order = categories, linewidth=0.2, legend=False, **{'alpha': transparency})
 
 	# add the legends (we do it here to avoid adding more collections to ax.collections - simplifies logic)
 	if len(handles) > 0:
@@ -246,8 +286,8 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	plt.axhline(y=sig, color='red', ls='--', lw = 0.5)  # plot threshold
 
 	# make it so that the labels wrap to the next line if they are too long
-	labels = [ textwrap.fill(l, 12, break_long_words=False) for l in categories ]
-	ax.set_xticks(ax.get_xticks().tolist())
+	labels = [ textwrap.fill(l, 15, break_long_words=False) for l in categories ]
+	ax.set_xticks(ax.get_xticks())
 	ax.set_xticklabels(labels)
 
 	if n_categories > 5:
@@ -256,7 +296,6 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 		ax.tick_params(axis='x', which='major', labelsize=5)
 
 	ax.set_xmargin(0.1)
-	# ax.set_ymargin(0.05)
 	ax.autoscale_view()
 
 	ax.set_ylim([None, ax.get_ylim()[1]*1.15])
@@ -268,13 +307,18 @@ def manhattan_plot(phewas_results, sig, low, high, title, output_file, pheno, an
 	plt.savefig(output_file, bbox_inches ='tight', format = output_format, dpi = dpi)
 	plt.close()
 
-def category_enrichment_plot(phewas_results, sig, title, output_file, output_format, dpi):
-	
-	print('Plotting bar plot for %s' % output_file)
+def category_enrichment_plot(phewas_results, sig, title, output_file, output_format, height, width, dpi):
 
 	# annotate each row with whether it is significant or not
 	phewas_results['Significant'] = np.where(phewas_results["-log(p)"] >= sig, True, False)
-	_, ax = plt.subplots(figsize = (12, 8))
+
+	if phewas_results['Significant'].sum() == 0:
+		print("There are no significant results to plot for this PheWAS category ({})".format(phewas_results['PheWAS_Category'].unique()[0]))
+		return
+
+	print('Plotting bar plot for %s' % output_file)
+	plt.figure(figsize=(width, height))
+	_, ax = plt.subplots(figsize = (width, height))
 
 	total_vars = {}
 	significant_results = {}
@@ -295,7 +339,17 @@ def category_enrichment_plot(phewas_results, sig, title, output_file, output_for
 
 	plt.xlabel('Categories', labelpad=12)
 	ax.set_ylim([None, ax.get_ylim()[1]*1.05])
-	plt.xticks(rotation=45, ha='right')
+
+	# make it so that the labels wrap to the next line if they are too long
+	labels = [ textwrap.fill(cat, 15, break_long_words=False) for cat in categories ]
+	ax.set_xticks(ax.get_xticks())
+	ax.set_xticklabels(labels)
+
+	if len(categories) > 5:
+		# and rotate/shrink the labels
+		plt.xticks(rotation = 90)
+		ax.tick_params(axis='x', which='major', labelsize=7)
+
 	plt.ylabel('Percentage of significant associations out of total', labelpad=12)
 
 	ax.yaxis.set_major_formatter(mtick.PercentFormatter())
@@ -331,7 +385,7 @@ def category_enrichment_plot(phewas_results, sig, title, output_file, output_for
 	plt.savefig(output_file, bbox_inches ='tight', format = output_format, dpi = dpi)
 	plt.close()
 
-def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_genes, annotate, transparency, compare_orig_betas, logp_low, logp_high, beta_low, beta_high, output_format, dpi):
+def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_genes, annotate, transparency, compare_orig_betas, logp_low, logp_high, beta_low, beta_high, output_format, height, width, dpi):
 
 	# make a volcano plot for each independent variable that was tested
 	ind_vars = phewas_results['Independent_Var'].unique()
@@ -366,7 +420,7 @@ def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_ge
 		handles = []
 
 		# get ready to plot
-		plt.figure(figsize=(15, 8), dpi=500)
+		plt.figure(figsize=(width, height), dpi=dpi)
 
 		# plot the results
 		if not significant_phewas_pos_beta.empty:
@@ -412,7 +466,11 @@ def volcano_plot(phewas_results, sig, title, output_file, phewas_type, N, max_ge
 			# get top N most significant results
 			outlier_removed_ind_var_i = outlier_removed_ind_var_i.sort_values(by = '-log(p)', ascending = False)
 
-			descriptions = outlier_removed_ind_var_i['Description']
+			if 'Description' in outlier_removed_ind_var_i.columns:
+				descriptions = outlier_removed_ind_var_i['Description']
+			else:
+				descriptions = outlier_removed_ind_var_i['Data_Field'].str.replace("_", " ") # if no description, use the data field instead
+				
 
 			results_annotated = N
 			# annotate the top N most significant results with their description
@@ -522,6 +580,8 @@ def main():
 	parser.add_argument('--dpi', help = "DPI of the output plots", required = False, default = 600, type = int)
 	parser.add_argument('--output_format', help = "Format of the output plots", required = False, default = 'png', choices = ['png', 'jpg', 'svg', 'pdf'], type = str)
 	parser.add_argument('--add_default_title', help = "Add default title to the plots (i.e. PheWAS Volcano Plot (Aggregate) or PheWAS Separated Manhattan Plot (Category))", required = False, default = False, action = 'store_true')
+	parser.add_argument('--height', help = "Height of the plots", required = False, default = 8, type = int)
+	parser.add_argument('--width', help = "Width of the plots", required = False, default = 15, type = int)
 
 	# Manhattan Plot Specific
 	parser.add_argument('--plot_manhattan', help = "Plot the manhattan plot", required = False, default = False, action = 'store_true')
@@ -582,6 +642,8 @@ def main():
 	output_format = args.output_format
 	output_extension = "." + output_format
 	add_default_title = args.add_default_title
+	height = args.height
+	width = args.width
 
 	# Manhattan Plot Specific
 	plot_manhattan = args.plot_manhattan
@@ -616,7 +678,7 @@ def main():
 		exit()
 	
 	if phewas_type == 'phenotype':
-		if len(variant_files) != 0:
+		if variant_files is not None and len(variant_files) != 0:
 			print("Warning: You have specified variant files for annotation but have indicated that this is a Phenotype PheWAS. The variant files will be ignored.")
 			variant_files = []
 
@@ -674,6 +736,10 @@ def main():
 		print("Error: The transparency must be between 0 and 1.")
 		exit()
 
+	if height <= 0 or width <= 0:
+		print("Error: The height and width of the plots must be greater than 0.")
+		exit()
+
 	# ----------------------------------------------------------------------------------------- #
 
 	# -------------------------------------SETUP DATA CODE------------------------------------- #
@@ -709,7 +775,7 @@ def main():
 	# ----------------------------------GENOTYPE BASED PHEWAS---------------------------------- #
 
 	# if the user wants to annotate and has specified variant files, then load them
-	if len(variant_files) != 0:
+	if variant_files is not None and len(variant_files) != 0:
 
 		phewas_results = phewas_results.rename(columns = {'Independent_Var': 'rsID'})
 
@@ -867,6 +933,8 @@ def main():
 						transparency = transparency,
 						pheno_color = color_map,
 						output_format = output_format,
+						height = height,
+						width = width,
 						dpi = dpi)
 
 	if plot_category_enrichment:
@@ -884,6 +952,8 @@ def main():
 								title = category_enrichment_title, 
 								output_file = category_enrichment_agg_dir + '/' + output_prefix + output_extension,
 								output_format = output_format,
+								height = height,
+								width = width,
 								dpi = dpi)
 
 	if plot_volcano:
@@ -910,6 +980,8 @@ def main():
 						beta_low = beta_lower_outlier_val,
 						beta_high = beta_upper_outlier_val,
 						output_format = output_format,
+						height = height,
+						width = width,
 						dpi = dpi)
 						
 	if plot_phewas_categories_separately:
@@ -934,6 +1006,8 @@ def main():
 								transparency = transparency,
 								pheno_color = color_map,
 								output_format = output_format,
+								height = height,
+								width = width,
 								dpi = dpi)
 
 			if plot_category_enrichment:
@@ -961,6 +1035,8 @@ def main():
 							beta_low = beta_lower_outlier_val,
 							beta_high = beta_upper_outlier_val,
 							output_format = output_format,
+							height = height,
+							width = width,
 							dpi = dpi)
 
 
