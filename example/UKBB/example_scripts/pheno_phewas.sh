@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# the $1 should be the category of phenotype you want to run the pheWAS on (1006, 1019, etc)
+
 python ../../../pype/run_phewas.py \
   --UKBB \
   --aggregate_phenotype_file ../example_data/phenotype_files/example.tab \
