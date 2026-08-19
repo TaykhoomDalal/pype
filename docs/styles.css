@@ -6,8 +6,11 @@
   --muted: #536253;
   --green: #1eb515;
   --green-dark: #0b6510;
+  --link: #0a6f10;
   --border: #d8e3d8;
   --code: #eef5ee;
+  --stripe: #f8faf8;
+  --shadow: rgba(13, 45, 13, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -16,8 +19,11 @@
     --surface: #151d15;
     --text: #eaf4ea;
     --muted: #a9b9a9;
+    --link: #63df5a;
     --border: #2b3b2b;
     --code: #101810;
+    --stripe: #121a12;
+    --shadow: rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -38,7 +44,25 @@ body {
 }
 
 a {
-  color: var(--green-dark);
+  color: var(--link);
+}
+
+a:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  background: var(--surface);
+  left: 1rem;
+  padding: 0.6rem 0.8rem;
+  position: fixed;
+  top: -5rem;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  top: 1rem;
 }
 
 header {
@@ -48,15 +72,54 @@ header {
   text-align: center;
 }
 
-header img {
-  width: min(820px, 96vw);
+.brand {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.brand .logo {
+  height: auto;
   image-rendering: pixelated;
+  width: 81px;
+}
+
+.brand h1 {
+  color: #29c620;
+  font-size: clamp(3rem, 10vw, 6rem);
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-shadow: 6px 6px 0 #07530b;
 }
 
 header p {
   color: #d9efd9;
   margin: 0.5rem auto 0;
   max-width: 760px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
+.button {
+  border: 2px solid #5ce752;
+  border-radius: 4px;
+  color: #eaf4ea;
+  font-weight: 700;
+  padding: 0.55rem 0.85rem;
+  text-decoration: none;
+}
+
+.button.primary,
+.button:hover {
+  background: #1b9f15;
+  color: #ffffff;
 }
 
 nav {
@@ -115,6 +178,7 @@ h2 {
   border: 1px solid var(--border);
   border-left: 5px solid var(--green);
   border-radius: 4px;
+  box-shadow: 0 8px 24px var(--shadow);
   min-width: 0;
   padding: 1rem;
 }
@@ -173,6 +237,10 @@ th {
   background: var(--code);
 }
 
+tbody tr:nth-child(even) {
+  background: var(--stripe);
+}
+
 .note {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -185,4 +253,28 @@ footer {
   color: var(--muted);
   padding: 2rem 1rem;
   text-align: center;
+}
+
+@media (max-width: 650px) {
+  header {
+    padding-top: 1.25rem;
+  }
+
+  nav {
+    gap: 0.65rem 1rem;
+    position: static;
+  }
+
+  main {
+    padding-inline: 0.8rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  th,
+  td {
+    min-width: 130px;
+  }
 }

@@ -4,13 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Documentation for PYPE PheWAS, plotting, and Mendelian randomization tools.">
+  <meta property="og:title" content="PYPE documentation">
+  <meta property="og:description" content="PheWAS analysis, visualization, phenotype metadata, and Mendelian randomization in Python.">
+  <meta property="og:image" content="https://taykhoomdalal.github.io/pype/assets/pype_logo.png">
+  <link rel="canonical" href="https://taykhoomdalal.github.io/pype/">
   <title>PYPE documentation</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#content">Skip to content</a>
   <header>
-    <img src="assets/pype_wordmark.png" alt="PYPE">
+    <div class="brand">
+      <img class="logo" src="assets/pype_logo.png" alt="">
+      <h1>PYPE</h1>
+    </div>
     <p>PheWAS analysis, visualization, phenotype metadata, and Mendelian randomization in Python.</p>
+    <div class="actions">
+      <a class="button primary" href="https://github.com/TaykhoomDalal/pype">View on GitHub</a>
+      <a class="button" href="https://doi.org/10.1016/j.patter.2024.100982">Read the paper</a>
+    </div>
   </header>
 
   <nav aria-label="Documentation">
@@ -23,7 +35,7 @@
     <a href="#api">API</a>
   </nav>
 
-  <main>
+  <main id="content">
     <section id="overview">
       <h2>Overview</h2>
       <div class="grid">
@@ -44,10 +56,12 @@
 
     <section id="install">
       <h2>Install</h2>
-      <p>Clone the repository and install it with pip:</p>
-      <pre><code>git clone https://github.com/TaykhoomDalal/pype.git
+      <p>Install the current development version directly from GitHub:</p>
+      <pre><code>python -m pip install "git+https://github.com/TaykhoomDalal/pype.git@development"</code></pre>
+      <p>For an editable source checkout:</p>
+      <pre><code>git clone --branch development https://github.com/TaykhoomDalal/pype.git
 cd pype
-python -m pip install .</code></pre>
+python -m pip install -e .</code></pre>
       <p>Install the optional BioThings annotation clients when needed:</p>
       <pre><code>python -m pip install ".[annotations]"</code></pre>
     </section>

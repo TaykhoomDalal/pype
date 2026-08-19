@@ -29,12 +29,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: actions/configure-pages@v6
+      - name: Validate site
+        run: python tests/test_docs.py
       - name: Prepare site
         run: |
           mkdir _site
           cp -R docs/. _site/
           mkdir -p _site/assets
-          cp assets/pype_wordmark.png _site/assets/
+          cp assets/pype_logo.png _site/assets/
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
