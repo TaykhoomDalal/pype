@@ -115,11 +115,19 @@ h2 {
   border: 1px solid var(--border);
   border-left: 5px solid var(--green);
   border-radius: 4px;
+  min-width: 0;
   padding: 1rem;
 }
 
 .card h3 {
+  font-size: 1rem;
   margin-top: 0;
+  overflow-wrap: anywhere;
+}
+
+.card h3 code {
+  white-space: normal;
+  word-break: break-word;
 }
 
 pre,
