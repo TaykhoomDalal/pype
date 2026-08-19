@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Documentation for PYPE PheWAS, plotting, and Mendelian randomization tools.">
+  <title>PYPE documentation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <img src="assets/pype_wordmark.png" alt="PYPE">
+    <p>PheWAS analysis, visualization, phenotype metadata, and Mendelian randomization in Python.</p>
+  </header>
+
+  <nav aria-label="Documentation">
+    <a href="#install">Install</a>
+    <a href="#phewas">PheWAS</a>
+    <a href="#formats">File formats</a>
+    <a href="#plotting">Plotting</a>
+    <a href="#mr">MR</a>
+    <a href="#genes">Gene annotation</a>
+    <a href="#api">API</a>
+  </nav>
+
+  <main>
+    <section id="overview">
+      <h2>Overview</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>PheWAS</h3>
+          <p>Regress genotype or phenotype predictors against many outcomes with optional covariates.</p>
+        </article>
+        <article class="card">
+          <h3>Plots</h3>
+          <p>Create Manhattan, volcano, and category enrichment plots directly from result dataframes.</p>
+        </article>
+        <article class="card">
+          <h3>Mendelian randomization</h3>
+          <p>Run IVW, MR-Egger, median, mode, and MR-PRESSO methods after allele harmonization.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="install">
+      <h2>Install</h2>
+      <p>Clone the repository and install it with pip:</p>
+      <pre><code>git clone https://github.com/TaykhoomDalal/pype.git
+cd pype
+python -m pip install .</code></pre>
+      <p>Install the optional BioThings annotation clients when needed:</p>
+      <pre><code>python -m pip install ".[annotations]"</code></pre>
+    </section>
+
+    <section id="phewas">
+      <h2>Run a PheWAS</h2>
+      <pre><code>import pandas as pd
+import pype
+
+phenotypes = pd.DataFrame({
+    "trait_a": [1.2, 2.0, 1.5, 3.1],
+    "trait_b": [0.0, 1.0, 0.0, 1.0],
+    "age": [50, 61, 47, 70],
+})
+
+predictors = pd.DataFrame({
+    "variant_1": [0, 1, 1, 2],
+})
+
+results = pype.phenome_wide_association(
+    phenotypes,
+    predictors,
+    outcomes=["trait_a", "trait_b"],
+    covariates=["age"],
+    min_samples=3,
+)</code></pre>
+      <div class="note">
+        The phenotype and predictor dataframes must use the same sample index. Each regression uses rows with complete predictor, outcome, and covariate data.
+      </div>
+    </section>
+
+    <section id="formats">
+      <h2>Input and output formats</h2>
+
+      <h3>Phenotype dataframe</h3>
+      <table>
+        <thead>
+          <tr><th>Layout</th><th>Requirement</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Rows</td><td>Samples or participants.</td></tr>
+          <tr><td>Index</td><td>Must match the predictor dataframe index exactly.</td></tr>
+          <tr><td>Columns</td><td>Numeric outcome phenotypes and optional numeric covariates.</td></tr>
+          <tr><td>Missing values</td><td>Allowed. PYPE uses complete cases separately for each regression.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Predictor dataframe</h3>
+      <table>
+        <thead>
+          <tr><th>Layout</th><th>Requirement</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Rows</td><td>The same samples and index as the phenotype dataframe.</td></tr>
+          <tr><td>Columns</td><td>One or more numeric predictors. These may be genotype dosages, scores, or phenotypes.</td></tr>
+          <tr><td>Genotype coding</td><td>Dosages such as 0, 1, and 2 are supported. PYPE does not read BED, BIM, or FAM files directly.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>PheWAS result dataframe</h3>
+      <table>
+        <thead>
+          <tr><th>Column</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>Data_Field</code></td><td>Outcome phenotype name.</td></tr>
+          <tr><td><code>Independent_Var</code></td><td>Predictor name.</td></tr>
+          <tr><td><code>Samples</code></td><td>Complete cases divided by total input samples.</td></tr>
+          <tr><td><code>-log(p)</code></td><td>Negative base-10 logarithm of the p-value.</td></tr>
+          <tr><td><code>p-val</code></td><td>Regression p-value.</td></tr>
+          <tr><td><code>beta</code></td><td>Predictor effect estimate.</td></tr>
+          <tr><td><code>std_error</code></td><td>Standard error of the effect estimate.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Phenotype metadata</h3>
+      <p>The plotting functions require a category for each outcome. Join a metadata dataframe or delimited file with <code>add_phenotype_metadata</code>.</p>
+      <table>
+        <thead>
+          <tr><th>Column</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>Data_Field</code></td><td>Field identifier matching the PheWAS result.</td></tr>
+          <tr><td><code>Description</code></td><td>Optional readable label used for annotations.</td></tr>
+          <tr><td><code>Category</code></td><td>Group used on Manhattan and enrichment plots.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>MR summary statistics</h3>
+      <table>
+        <thead>
+          <tr><th>Column</th><th>Required</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>rsID</code></td><td>Yes</td><td>Variant identifier.</td></tr>
+          <tr><td><code>CHR</code></td><td>Yes</td><td>Chromosome. Values X and Y are accepted.</td></tr>
+          <tr><td><code>Effect_Allele</code></td><td>Yes</td><td>Allele associated with BETA.</td></tr>
+          <tr><td><code>Non_Effect_Allele</code></td><td>Recommended</td><td>Other allele used for reliable harmonization.</td></tr>
+          <tr><td><code>BETA</code></td><td>Yes</td><td>Effect estimate.</td></tr>
+          <tr><td><code>SE</code></td><td>Yes</td><td>Standard error.</td></tr>
+          <tr><td><code>P</code></td><td>Yes</td><td>P-value.</td></tr>
+          <tr><td><code>N</code></td><td>No</td><td>Sample size. Used to choose among duplicate rows.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="plotting">
+      <h2>Plotting</h2>
+      <pre><code>import pandas as pd
+import pype
+from pype.plotting import category_enrichment, manhattan, volcano
+
+metadata = pd.DataFrame({
+    "Data_Field": ["trait_a", "trait_b"],
+    "Description": ["Trait A", "Trait B"],
+    "Category": ["Measurements", "Diagnoses"],
+})
+
+results = pype.add_phenotype_metadata(results, metadata)
+manhattan(results, "manhattan.png")
+category_enrichment(results, "category_enrichment.png")
+volcano(results, "volcano.png")</code></pre>
+      <p>Manhattan and volcano functions also write tab-separated files containing significant results beside the image files.</p>
+    </section>
+
+    <section id="mr">
+      <h2>Mendelian randomization</h2>
+      <pre><code>results, diagnostics = pype.mendelian_randomization(
+    exposure,
+    outcome,
+    exposure_name="exposure_trait",
+    outcome_name="outcome_trait",
+    methods=("ivw", "egger", "weighted_median"),
+    seed=0,
+)</code></pre>
+      <p>Use <code>methods="all"</code> to run every method. PYPE aligns matching alleles, flips reversed effects, accepts strand complements, and removes incompatible or ambiguous palindromic variants.</p>
+      <p>The implemented estimates were checked directly against the TwoSampleMR R source and MR-PRESSO reference implementation.</p>
+    </section>
+
+    <section id="genes">
+      <h2>Gene annotation</h2>
+      <p>A gene interval file is used only to find genes near a variant. The genome assembly of the variants and the gene file must match.</p>
+      <table>
+        <thead>
+          <tr><th>Column</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>#chrom</code></td><td>Chromosome, such as chr1.</td></tr>
+          <tr><td><code>cdsStart</code></td><td>Gene coding start coordinate.</td></tr>
+          <tr><td><code>cdsEnd</code></td><td>Gene coding end coordinate.</td></tr>
+          <tr><td><code>name2</code></td><td>Gene symbol.</td></tr>
+        </tbody>
+      </table>
+      <p>The old hg19 list was a UCSC RefSeq export in this format. It was not study data and contained no participant information. A current UCSC or GENCODE interval file can be supplied instead.</p>
+    </section>
+
+    <section id="api">
+      <h2>Public API</h2>
+      <div class="grid">
+        <article class="card">
+          <h3><code>pype.phenome_wide_association</code></h3>
+          <p>Run covariate-adjusted PheWAS regressions from aligned dataframes.</p>
+        </article>
+        <article class="card">
+          <h3><code>pype.add_phenotype_metadata</code></h3>
+          <p>Join descriptions and categories to PheWAS results.</p>
+        </article>
+        <article class="card">
+          <h3><code>pype.mendelian_randomization</code></h3>
+          <p>Harmonize variants and run selected MR methods.</p>
+        </article>
+        <article class="card">
+          <h3><code>pype.plotting</code></h3>
+          <p>Create Manhattan, volcano, and category enrichment plots.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>PYPE is released under the Apache License 2.0.</p>
+    <p><a href="https://github.com/TaykhoomDalal/pype">GitHub repository</a> | <a href="https://doi.org/10.1016/j.patter.2024.100982">Reference paper</a></p>
+  </footer>
+</body>
+</html>

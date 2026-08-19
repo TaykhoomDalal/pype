@@ -51,6 +51,7 @@ test = [
 
 [project.urls]
 Homepage = "https://github.com/TaykhoomDalal/pype"
+Documentation = "https://taykhoomdalal.github.io/pype/"
 Issues = "https://github.com/TaykhoomDalal/pype/issues"
 Paper = "https://doi.org/10.1016/j.patter.2024.100982"
 

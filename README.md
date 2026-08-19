@@ -4,6 +4,8 @@
 
 PYPE runs phenome-wide association studies (PheWAS), creates PheWAS plots, and performs Mendelian randomization (MR) in Python.
 
+[Documentation](https://taykhoomdalal.github.io/pype/) | [Reference paper](https://doi.org/10.1016/j.patter.2024.100982)
+
 ## Features
 
 - PheWAS with genotype or phenotype predictors
