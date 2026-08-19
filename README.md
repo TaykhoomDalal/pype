@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="https://raw.githubusercontent.com/TaykhoomDalal/pype/main/assets/pype_wordmark.png" alt="PYPE">
+  <img src="assets/pype_wordmark.png" alt="PYPE">
 </h1>
 
 PYPE runs phenome-wide association studies (PheWAS), creates PheWAS plots, and performs Mendelian randomization (MR) in Python.
