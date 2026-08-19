@@ -121,7 +121,7 @@ Available methods:
 
 ## Data
 
-No study data are included. Users must obtain data through the appropriate source and follow its access terms. Tests use synthetic data.
+Tests use synthetic data. Study data are supplied by users under the access terms of their data source.
 
 ## Citation
 

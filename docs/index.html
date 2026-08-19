@@ -103,7 +103,7 @@ results = pype.phenome_wide_association(
         <tbody>
           <tr><td>Rows</td><td>The same samples and index as the phenotype dataframe.</td></tr>
           <tr><td>Columns</td><td>One or more numeric predictors. These may be genotype dosages, scores, or phenotypes.</td></tr>
-          <tr><td>Genotype coding</td><td>Dosages such as 0, 1, and 2 are supported. PYPE does not read BED, BIM, or FAM files directly.</td></tr>
+          <tr><td>Genotype coding</td><td>Provide dosages such as 0, 1, and 2 as numeric dataframe columns.</td></tr>
         </tbody>
       </table>
 
@@ -149,7 +149,7 @@ results = pype.phenome_wide_association(
           <tr><td><code>BETA</code></td><td>Yes</td><td>Effect estimate.</td></tr>
           <tr><td><code>SE</code></td><td>Yes</td><td>Standard error.</td></tr>
           <tr><td><code>P</code></td><td>Yes</td><td>P-value.</td></tr>
-          <tr><td><code>N</code></td><td>No</td><td>Sample size. Used to choose among duplicate rows.</td></tr>
+          <tr><td><code>N</code></td><td>Optional</td><td>Sample size. Used to choose among duplicate rows.</td></tr>
         </tbody>
       </table>
     </section>
@@ -201,7 +201,7 @@ volcano(results, "volcano.png")</code></pre>
           <tr><td><code>name2</code></td><td>Gene symbol.</td></tr>
         </tbody>
       </table>
-      <p>The old hg19 list was a UCSC RefSeq export in this format. It was not study data and contained no participant information. A current UCSC or GENCODE interval file can be supplied instead.</p>
+      <p>UCSC RefSeq and GENCODE interval exports can be used. Choose GRCh37/hg19 or GRCh38 to match the variant coordinates.</p>
     </section>
 
     <section id="api">
