@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PYPE dataframe, summary statistic, metadata, result, and gene interval formats.">
+  <title>File formats | PYPE</title>
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="compact">
+    <div class="brand">
+      <img class="logo" src="assets/pype_logo.png" alt="">
+      <span class="brand-name">PYPE</span>
+    </div>
+  </header>
+  <nav aria-label="Documentation">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Start</a>
+    <a class="current" aria-current="page" href="file-formats.html">Formats</a>
+    <a href="api.html">API</a>
+    <a href="mr.html">MR methods</a>
+    <a href="plotting.html">Plotting</a>
+    <a href="reproducibility.html">Reproduce</a>
+    <a href="roadmap.html">Roadmap</a>
+    <button class="theme-toggle" type="button" data-theme-toggle>Theme</button>
+  </nav>
+
+  <main id="content" class="wide">
+    <div class="docs-layout">
+      <article class="docs-content">
+        <p class="kicker">Reference</p>
+        <h1>Input and output formats</h1>
+        <h2 id="phenotypes">Phenotype dataframe</h2>
+        <p>Rows represent samples. Columns contain outcomes and covariates.</p>
+        <table tabindex="0">
+          <thead><tr><th scope="col">Part</th><th scope="col">Requirement</th></tr></thead>
+          <tbody>
+            <tr><td>Index</td><td>Must match the predictor dataframe index exactly.</td></tr>
+            <tr><td>Outcomes</td><td>Numeric columns named in the <code>outcomes</code> argument.</td></tr>
+            <tr><td>Covariates</td><td>Optional numeric columns named in the <code>covariates</code> argument.</td></tr>
+            <tr><td>Missing values</td><td>Allowed. Each regression uses its own complete-case subset.</td></tr>
+          </tbody>
+        </table>
+        <pre><code>sample_id  trait_a  trait_b  age  sex
+S001       1.2      0        50   1
+S002       2.0      1        61   0
+S003       1.5      0        47   1</code></pre>
+
+        <h2 id="predictors">Predictor dataframe</h2>
+        <p>Rows use the same sample index as the phenotype dataframe. Each column is tested independently against every selected outcome.</p>
+        <table tabindex="0">
+          <thead><tr><th scope="col">Predictor type</th><th scope="col">Example</th></tr></thead>
+          <tbody>
+            <tr><td>Genotype dosage</td><td>0, 1, and 2 effect-allele copies.</td></tr>
+            <tr><td>Phenotype</td><td>A biomarker or derived measurement.</td></tr>
+            <tr><td>Score</td><td>A polygenic score or model prediction.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="phewas-results">PheWAS result dataframe</h2>
+        <table tabindex="0">
+          <thead><tr><th scope="col">Column</th><th scope="col">Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>outcome</code></td><td>Outcome phenotype name.</td></tr>
+            <tr><td><code>predictor</code></td><td>Predictor name.</td></tr>
+            <tr><td><code>sample_count</code></td><td>Complete-case sample count.</td></tr>
+            <tr><td><code>total_sample_count</code></td><td>Total aligned input sample count.</td></tr>
+            <tr><td><code>negative_log10_pvalue</code></td><td>Negative base-10 logarithm of the regression p-value.</td></tr>
+            <tr><td><code>pvalue</code></td><td>Regression p-value.</td></tr>
+            <tr><td><code>beta</code></td><td>Predictor coefficient.</td></tr>
+            <tr><td><code>standard_error</code></td><td>Coefficient standard error.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="metadata">Phenotype metadata</h2>
+        <p>Metadata provides labels and plotting groups. It may be a dataframe or a CSV/TSV path.</p>
+        <table tabindex="0">
+          <thead><tr><th scope="col">Column</th><th scope="col">Required</th><th scope="col">Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>outcome</code></td><td>Yes</td><td>Identifier matching the PheWAS result.</td></tr>
+            <tr><td><code>category</code></td><td>Yes</td><td>Group used on Manhattan and enrichment plots.</td></tr>
+            <tr><td><code>description</code></td><td>Optional</td><td>Readable label used for annotations.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="mr-summary">MR summary statistics</h2>
+        <table tabindex="0">
+          <thead><tr><th scope="col">Column</th><th scope="col">Required</th><th scope="col">Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>variant_id</code></td><td>Yes</td><td>Variant identifier.</td></tr>
+            <tr><td><code>chromosome</code></td><td>Yes</td><td>Chromosome. X and Y are accepted.</td></tr>
+            <tr><td><code>effect_allele</code></td><td>Yes</td><td>Allele associated with <code>beta</code>.</td></tr>
+            <tr><td><code>other_allele</code></td><td>Recommended</td><td>Other allele used during harmonization.</td></tr>
+            <tr><td><code>beta</code></td><td>Yes</td><td>Effect estimate.</td></tr>
+            <tr><td><code>standard_error</code></td><td>Yes</td><td>Effect standard error.</td></tr>
+            <tr><td><code>pvalue</code></td><td>Yes</td><td>Association p-value.</td></tr>
+            <tr><td><code>sample_size</code></td><td>Optional</td><td>Sample size used to resolve duplicate variant rows.</td></tr>
+          </tbody>
+        </table>
+        <pre><code>variant_id  chromosome  effect_allele  other_allele  beta   standard_error  pvalue
+rs100001    1           A              G             0.12   0.03            2e-8
+rs100002    2           C              T            -0.08   0.02            4e-9</code></pre>
+
+        <h2 id="mr-results">MR result dataframe</h2>
+        <table tabindex="0">
+          <thead><tr><th scope="col">Column</th><th scope="col">Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>method</code></td><td>MR estimator name.</td></tr>
+            <tr><td><code>exposure</code></td><td>Exposure label supplied to the analysis.</td></tr>
+            <tr><td><code>outcome</code></td><td>Outcome label supplied to the analysis.</td></tr>
+            <tr><td><code>pvalue</code></td><td>Estimator p-value.</td></tr>
+            <tr><td><code>beta</code></td><td>Estimated exposure-outcome effect.</td></tr>
+            <tr><td><code>standard_error</code></td><td>Estimator standard error.</td></tr>
+            <tr><td><code>variant_count</code></td><td>Number of variants used by the estimator.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="gene-intervals">Gene interval file</h2>
+        <p><code>annotate_genes</code> accepts a tab-separated interval table. The variant and gene coordinates must use the same genome assembly.</p>
+        <table tabindex="0">
+          <thead><tr><th scope="col">Column</th><th scope="col">Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>chromosome</code></td><td>Chromosome, such as chr1.</td></tr>
+            <tr><td><code>start</code></td><td>Gene coding start coordinate.</td></tr>
+            <tr><td><code>end</code></td><td>Gene coding end coordinate.</td></tr>
+            <tr><td><code>gene</code></td><td>Gene symbol.</td></tr>
+          </tbody>
+        </table>
+        <p>Rename source columns to this schema before calling PYPE. Choose GRCh37/hg19 or GRCh38 to match the variant coordinates.</p>
+
+        <h2 id="plot-files">Plot outputs</h2>
+        <p>Plot functions write PNG, SVG, PDF, or other Matplotlib-supported image formats based on the output suffix. Manhattan and volcano calls also write tab-separated significant-result files beside the image.</p>
+      </article>
+
+      <aside class="toc">
+        <strong>On this page</strong>
+        <a href="#phenotypes">Phenotypes</a>
+        <a href="#predictors">Predictors</a>
+        <a href="#phewas-results">PheWAS results</a>
+        <a href="#metadata">Metadata</a>
+        <a href="#mr-summary">MR statistics</a>
+        <a href="#mr-results">MR results</a>
+        <a href="#gene-intervals">Gene intervals</a>
+        <a href="#plot-files">Plot outputs</a>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    <p><a href="getting-started.html">Getting started</a> | <a href="api.html">API reference</a></p>
+  </footer>
+</body>
+</html>

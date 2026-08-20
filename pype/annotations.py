@@ -5,87 +5,162 @@ from pathlib import Path
 import pandas as pd
 
 
-def get_closest_genes(variants, genes, upstream, downstream):
+def get_closest_genes(variants, genes, upstream_kb, downstream_kb):
+	"""Return gene intervals near each variant."""
+	required_variant_columns = {
+		"variant_id",
+		"chromosome",
+		"position",
+	}
+	required_gene_columns = {
+		"chromosome",
+		"start",
+		"end",
+		"gene",
+	}
+	missing_variant_columns = required_variant_columns - set(variants.columns)
+	missing_gene_columns = required_gene_columns - set(genes.columns)
+	if missing_variant_columns:
+		raise ValueError(
+			"Missing variant columns: "
+			+ ", ".join(sorted(missing_variant_columns))
+		)
+	if missing_gene_columns:
+		raise ValueError(
+			"Missing gene columns: "
+			+ ", ".join(sorted(missing_gene_columns))
+		)
+
+	variants = variants.copy()
 	genes = genes.copy()
-	genes.columns = ["CHR", "START", "END", "GENE"]
-	genes["CHR"] = genes["CHR"].astype(str).str.removeprefix("chr")
+	variants["variant_id"] = variants["variant_id"].astype(str)
+	variants["chromosome"] = (
+		variants["chromosome"].astype(str).str.removeprefix("chr")
+	)
+	variants["position"] = pd.to_numeric(
+		variants["position"],
+		errors="raise",
+	)
+	genes["chromosome"] = (
+		genes["chromosome"].astype(str).str.removeprefix("chr")
+	)
+	genes[["start", "end"]] = genes[["start", "end"]].apply(
+		pd.to_numeric,
+		errors="raise",
+	)
 
 	# Combine transcript rows so each gene occupies one interval per chromosome.
 	genes = (
-		genes.groupby(["GENE", "CHR"], as_index=False)
-		.agg(START=("START", "min"), END=("END", "max"))
+		genes.groupby(["gene", "chromosome"], as_index=False)
+		.agg(start=("start", "min"), end=("end", "max"))
 	)
-	merged = variants.merge(genes, on="CHR", how="inner")
+	merged = variants.merge(genes, on="chromosome", how="inner")
 	return merged[
-		(merged["POS"] >= merged["START"] - upstream * 1000)
-		& (merged["POS"] <= merged["END"] + downstream * 1000)
+		(
+			merged["position"]
+			>= merged["start"] - upstream_kb * 1000
+		)
+		& (
+			merged["position"]
+			<= merged["end"] + downstream_kb * 1000
+		)
 	]
 
 
-def annotate_genes(gene_file, rsid_df, down, up, regressions, output_dir, pheno_name, save=True):
-	variants = rsid_df.copy()
-	variants["CHR"] = variants["CHR"].astype(str)
-	genes = pd.read_csv(gene_file, sep="\t")
-	genes["#chrom"] = genes["#chrom"].astype(str).str.removeprefix("chr")
-	valid_chromosomes = {str(value) for value in range(1, 23)} | {"X", "Y", "XY"}
-	genes = genes[genes["#chrom"].isin(valid_chromosomes)]
+def annotate_genes(
+	gene_intervals_file,
+	variants,
+	results,
+	upstream_kb=10,
+	downstream_kb=10,
+	output_directory=None,
+	output_prefix="pype",
+):
+	"""Add nearby gene symbols to variant association results."""
+	gene_intervals = pd.read_csv(gene_intervals_file, sep="\t")
+	nearby_genes = get_closest_genes(
+		variants,
+		gene_intervals,
+		upstream_kb,
+		downstream_kb,
+	).sort_values("variant_id")
 
-	nearby = get_closest_genes(variants, genes, up, down).sort_values("rsID")
-	gene_map = defaultdict(list)
-	for row in nearby.itertuples():
-		gene_map[row.rsID].append(row.GENE)
+	genes_by_variant = defaultdict(list)
+	for row in nearby_genes.itertuples():
+		genes_by_variant[row.variant_id].append(row.gene)
 
-	results = regressions.copy()
-	results["Gene"] = results["rsID"].map(
-		lambda rsid: ", ".join(gene_map[rsid])
+	annotated_results = results.copy()
+	result_variant_column = (
+		"variant_id" if "variant_id" in annotated_results else "predictor"
+	)
+	if result_variant_column not in annotated_results:
+		raise ValueError(
+			"Results require a variant_id or predictor column."
+		)
+	annotated_results["gene"] = annotated_results[result_variant_column].map(
+		lambda variant_id: ", ".join(genes_by_variant[str(variant_id)])
 	)
 
-	if save:
-		output_directory = Path(output_dir)
+	if output_directory is not None:
+		output_directory = Path(output_directory)
 		output_directory.mkdir(parents=True, exist_ok=True)
-		results.to_csv(
-			output_directory / f"{pheno_name}_pheWAS_results_with_nearby_genes.tab",
+		annotated_results.to_csv(
+			output_directory / f"{output_prefix}_results_with_genes.tsv",
 			sep="\t",
 			index=False,
 		)
-		nearby.to_csv(
-			output_directory / f"{pheno_name}_rsID_gene_map.tab",
+		nearby_genes.to_csv(
+			output_directory / f"{output_prefix}_variant_gene_map.tsv",
 			sep="\t",
 			index=False,
 		)
 
-	return results, nearby
+	return annotated_results, nearby_genes
 
 
-def annotate_variants_and_genes(top_results, variant_fields, gene_fields, out_dir):
+def annotate_variants_and_genes(
+	results,
+	output_directory,
+	variant_fields=("dbsnp",),
+	gene_fields=("summary",),
+):
+	"""Write BioThings summaries for significant variants and nearby genes."""
 	import mygene
 	import myvariant
 
-	output_directory = Path(out_dir)
+	output_directory = Path(output_directory)
 	output_directory.mkdir(parents=True, exist_ok=True)
-	results = top_results.copy()
-	results["Independent_Var"] = results["Independent_Var"].str.split("_").str[0]
+	results = results.copy()
+	variant_column = "variant_id" if "variant_id" in results else "predictor"
+	if variant_column not in results:
+		raise ValueError("Results require a variant_id or predictor column.")
+	results[variant_column] = (
+		results[variant_column].astype(str).str.split("_").str[0]
+	)
 
 	variant_client = myvariant.MyVariantInfo()
 	gene_client = mygene.MyGeneInfo()
 
-	for rsid in results["Independent_Var"].dropna().unique():
-		path = output_directory / f"{rsid}.summary"
+	for variant_id in results[variant_column].dropna().unique():
+		path = output_directory / f"{variant_id}.summary"
 		with path.open("w", encoding="utf-8") as output:
-			output.write("The variant is: " + rsid + "\n\n")
-			variant = variant_client.getvariant(rsid, fields=variant_fields)
+			output.write("Variant: " + variant_id + "\n\n")
+			variant = variant_client.getvariant(
+				variant_id,
+				fields=list(variant_fields),
+			)
 			if variant is not None:
 				output.write("Variant information:\n\n")
 				pprint.pprint(variant, stream=output)
 			else:
-				output.write("No variant information was found.\n")
+				output.write("Variant information was unavailable.\n")
 
-			if "Gene" not in results:
+			if "gene" not in results:
 				continue
 
 			gene_values = results.loc[
-				results["Independent_Var"] == rsid,
-				"Gene",
+				results[variant_column] == variant_id,
+				"gene",
 			].dropna()
 			if gene_values.empty:
 				continue
@@ -93,7 +168,12 @@ def annotate_variants_and_genes(top_results, variant_fields, gene_fields, out_di
 			genes = str(gene_values.iloc[0]).split(", ")
 			output.write("\nNearby genes: " + ", ".join(genes) + "\n")
 			for gene in genes:
-				gene_result = gene_client.query(gene, fields=gene_fields)
+				gene_result = gene_client.query(
+					gene,
+					fields=list(gene_fields),
+				)
 				hits = gene_result.get("hits", []) if gene_result else []
 				if hits and "summary" in hits[0]:
-					output.write("\n" + gene + ":\n" + hits[0]["summary"] + "\n")
+					output.write(
+						"\n" + gene + ":\n" + hits[0]["summary"] + "\n"
+					)

@@ -2,62 +2,73 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pype.phewas import phenome_wide_association, run_associations, run_regression
+from pype.phewas import _fit_linear_regression, phenome_wide_association
 
 
-def _regression_data():
-	rng = np.random.default_rng(3)
-	independent = pd.DataFrame({"variant": np.linspace(-2, 2, 12)})
+def regression_data():
+	random_generator = np.random.default_rng(3)
+	predictor = pd.Series(
+		np.linspace(-2, 2, 12),
+		name="variant",
+	)
 	covariate = pd.Series([0, 1] * 6, name="covariate")
-	phenotype = 1.75 * independent["variant"] + 0.8 * covariate + rng.normal(0, 0.03, 12)
+	outcome = (
+		1.75 * predictor
+		+ 0.8 * covariate
+		+ random_generator.normal(0, 0.03, 12)
+	)
 
-	independent.loc[1, "variant"] = np.nan
+	predictor.loc[1] = np.nan
 	covariate.loc[4] = np.nan
-	phenotype.loc[9] = np.nan
-	return independent, phenotype, covariate
+	outcome.loc[9] = np.nan
+	return predictor, outcome, covariate
 
 
 def test_regression_uses_complete_cases_and_returns_expected_effect():
-	independent, phenotype, covariate = _regression_data()
-
-	result = run_regression(
-		independent,
-		phenotype,
+	predictor, outcome, covariate = regression_data()
+	result = _fit_linear_regression(
+		predictor,
+		outcome,
 		pd.DataFrame({"covariate": covariate}),
 		["covariate"],
 	)
 
-	assert result[4] == 9
-	assert result[2] == pytest.approx(1.75, abs=0.05)
-	assert result[1] < 1e-6
+	assert result["sample_count"] == 9
+	assert result["beta"] == pytest.approx(1.75, abs=0.05)
+	assert result["pvalue"] < 1e-6
 
 
-def test_phewas_reports_the_actual_complete_case_sample_count():
-	independent, phenotype, covariate = _regression_data()
-	phenotypes = pd.DataFrame({"outcome": phenotype, "covariate": covariate})
-
-	results = run_associations(
-		phenotypes,
-		independent,
-		["outcome"],
-		covariates=["covariate"],
-		min_samples=9,
-	)
-
-	assert results.loc[0, "Samples"] == "9/12"
-	assert results.loc[0, "beta"] == pytest.approx(1.75, abs=0.05)
-
-
-def test_public_phewas_api_uses_clear_argument_names():
-	independent, phenotype, covariate = _regression_data()
-	phenotypes = pd.DataFrame({"outcome": phenotype, "covariate": covariate})
+def test_phewas_returns_consistent_result_columns():
+	predictor, outcome, covariate = regression_data()
+	phenotypes = pd.DataFrame({
+		"outcome": outcome,
+		"covariate": covariate,
+	})
+	predictors = pd.DataFrame({"variant": predictor})
 
 	results = phenome_wide_association(
 		phenotypes,
-		independent,
+		predictors,
 		outcomes=["outcome"],
 		covariates=["covariate"],
-		min_samples=9,
+		min_sample_count=9,
 	)
 
-	assert results.loc[0, "Samples"] == "9/12"
+	assert results.loc[0, "sample_count"] == 9
+	assert results.loc[0, "total_sample_count"] == 12
+	assert results.loc[0, "predictor"] == "variant"
+	assert results.loc[0, "outcome"] == "outcome"
+	assert results.loc[0, "beta"] == pytest.approx(1.75, abs=0.05)
+
+
+def test_phewas_omits_degenerate_regressions():
+	phenotypes = pd.DataFrame({"outcome": [1.0, 2.0, 3.0, 4.0]})
+	predictors = pd.DataFrame({"constant": [1.0, 1.0, 1.0, 1.0]})
+
+	results = phenome_wide_association(
+		phenotypes,
+		predictors,
+		min_sample_count=4,
+	)
+
+	assert results.empty

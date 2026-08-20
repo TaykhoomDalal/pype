@@ -11,8 +11,8 @@ import pandas as pd
 from scipy.stats import norm
 from statsmodels.formula.api import wls
 
-from .mr import load_config
-from .mr import methods
+from pype.mr import load_config
+from pype.mr.methods import inverse_variance_weighted, run_methods
 
 
 LE_GOALLEC_URL = (
@@ -30,7 +30,7 @@ OUTCOME_FILES = {
 	"Glucose": "30740_raw.gwas.imputed_v3.both_sexes.varorder.tsv.bgz",
 	"Waist Circumference": "48_raw.gwas.imputed_v3.both_sexes.tsv.bgz",
 }
-METHODS = [
+METHOD_KEYS = [
 	"ivw",
 	"egger",
 	"simple_median",
@@ -74,15 +74,15 @@ PUBLISHED_TABLE_1 = {
 }
 
 
-def download(url, path):
+def _download(url, path):
 	path.parent.mkdir(parents=True, exist_ok=True)
 	if not path.exists():
 		urllib.request.urlretrieve(url, path)
 	return path
 
 
-def load_exposures(input_directory):
-	workbook = download(LE_GOALLEC_URL, input_directory / "le_goallec_gwas.xlsx")
+def _load_exposures(input_directory):
+	workbook = _download(LE_GOALLEC_URL, input_directory / "le_goallec_gwas.xlsx")
 	data = pd.read_excel(workbook)
 	data = data[data["rsID"] == data["IndSigSNP"]]
 	exposures = {}
@@ -93,37 +93,62 @@ def load_exposures(input_directory):
 			& data["rsID"].isin(specification["variants"])
 		].set_index("rsID").loc[specification["variants"]]
 		exposures[name] = rows.rename(columns={
-			"beta": "BETA_EXP",
-			"se": "SE_EXP",
-		})[["chr", "pos", "BETA_EXP", "SE_EXP"]]
+			"beta": "exposure_beta",
+			"se": "exposure_standard_error",
+		})[
+			[
+				"chr",
+				"pos",
+				"exposure_beta",
+				"exposure_standard_error",
+			]
+		]
 
 	return exposures
 
 
-def extract_outcome(name, filename, positions, input_directory):
-	path = input_directory / (name.lower().replace(" ", "_") + ".tsv")
+def _extract_outcome(
+	outcome_name,
+	summary_filename,
+	variant_positions,
+	input_directory,
+):
+	path = input_directory / (
+		outcome_name.lower().replace(" ", "_") + ".tsv"
+	)
 	if path.exists():
 		result = pd.read_csv(path, sep="\t")
 		if "position" not in result:
 			result = pd.DataFrame({
 				"position": result["variant"].str.split(":").str[1].astype(int),
-				"BETA_OUT": result["beta"].astype(float),
-				"SE_OUT": result["se"].astype(float),
+				"outcome_beta": result["beta"].astype(float),
+				"outcome_standard_error": result["se"].astype(float),
 			})
+		required_columns = {
+			"position",
+			"outcome_beta",
+			"outcome_standard_error",
+		}
+		missing_columns = required_columns - set(result.columns)
+		if missing_columns:
+			raise ValueError(
+				"Cached outcome data are missing: "
+				+ ", ".join(sorted(missing_columns))
+			)
 		return result
 
-	url = NEALE_BASE_URL + "/" + filename
+	url = NEALE_BASE_URL + "/" + summary_filename
 	selected = []
 	with urllib.request.urlopen(url) as response:
 		with gzip.GzipFile(fileobj=response) as compressed:
 			reader = csv.DictReader(io.TextIOWrapper(compressed), delimiter="\t")
 			for row in reader:
 				position = int(row["variant"].split(":")[1])
-				if position in positions:
+				if position in variant_positions:
 					selected.append({
 						"position": position,
-						"BETA_OUT": float(row["beta"]),
-						"SE_OUT": float(row["se"]),
+						"outcome_beta": float(row["beta"]),
+						"outcome_standard_error": float(row["se"]),
 					})
 
 	result = pd.DataFrame(selected)
@@ -131,127 +156,122 @@ def extract_outcome(name, filename, positions, input_directory):
 	return result
 
 
-def analysis_frame(exposure, outcome):
+def _analysis_frame(exposure, outcome):
 	return (
 		exposure.reset_index()
 		.merge(outcome, left_on="pos", right_on="position", validate="one_to_one")
-		[["BETA_EXP", "BETA_OUT", "SE_EXP", "SE_OUT"]]
+		[
+			[
+				"exposure_beta",
+				"outcome_beta",
+				"exposure_standard_error",
+				"outcome_standard_error",
+			]
+		]
 	)
 
 
-def scalar(value):
-	if isinstance(value, pd.Series):
-		return value.iloc[0]
-	if isinstance(value, np.ndarray):
-		return value.flat[0]
-	return value
-
-
-def format_results(raw_results, predictor, outcome, snps):
+def _format_results(raw_results, predictor_name, outcome_name):
 	rows = []
-	for method, result in raw_results.items():
+	for display_name, result in raw_results.items():
 		if result is None:
 			continue
-		if method == "PRESSO":
-			for presso_result in result["MR_RESULTS"]:
+		if display_name == "MR-PRESSO":
+			for estimate in result["mr_results"]:
 				rows.append({
-					"Predictor": predictor,
-					"Outcome": outcome,
-					"Method": presso_result[0],
-					"P_value": float(scalar(presso_result[1])),
-					"Effect_Size": float(scalar(presso_result[2])),
-					"Standard_Error": float(scalar(presso_result[3])),
-					"Number_SNPs": snps,
+					"predictor": predictor_name,
+					"outcome": outcome_name,
+					**estimate,
 				})
 		else:
-			pvalue, beta, standard_error, *_ = result
 			rows.append({
-				"Predictor": predictor,
-				"Outcome": outcome,
-				"Method": method,
-				"P_value": float(pvalue),
-				"Effect_Size": float(beta),
-				"Standard_Error": float(standard_error),
-				"Number_SNPs": snps,
+				"predictor": predictor_name,
+				"outcome": outcome_name,
+				"method": display_name,
+				"pvalue": result["pvalue"],
+				"beta": result["beta"],
+				"standard_error": result["standard_error"],
+				"variant_count": result["variant_count"],
 			})
 	return rows
 
 
-def legacy_ivw(data):
+def _legacy_ivw(data):
 	model = wls(
-		"BETA_OUT ~ -1 + BETA_EXP",
+		"outcome_beta ~ -1 + exposure_beta",
 		data=data,
-		weights=1 / data["SE_OUT"] ** 2,
+		weights=1 / data["outcome_standard_error"] ** 2,
 	).fit()
-	beta = float(model.params["BETA_EXP"])
-	standard_error = float(model.bse["BETA_EXP"])
+	beta = float(model.params["exposure_beta"])
+	standard_error = float(model.bse["exposure_beta"])
 	pvalue = 2 * norm.sf(abs(beta / standard_error))
 	return beta, standard_error, pvalue
 
 
-def reproduce(output_directory, bootstrap, presso_distributions, seed):
+def reproduce(
+	output_directory,
+	bootstrap_iterations,
+	simulation_count,
+	seed,
+):
 	output_directory.mkdir(parents=True, exist_ok=True)
 	input_directory = output_directory / "inputs"
-	exposures = load_exposures(input_directory)
-	positions = {
+	exposures = _load_exposures(input_directory)
+	variant_positions = {
 		int(position)
 		for exposure in exposures.values()
 		for position in exposure["pos"]
 	}
 	outcomes = {
-		name: extract_outcome(name, filename, positions, input_directory)
-		for name, filename in OUTCOME_FILES.items()
+		outcome_name: _extract_outcome(
+			outcome_name,
+			summary_filename,
+			variant_positions,
+			input_directory,
+		)
+		for outcome_name, summary_filename in OUTCOME_FILES.items()
 	}
 
 	config = load_config()
 	for settings in config.values():
-		if "nboot" in settings:
-			settings["nboot"] = bootstrap
-	config["PRESSO"]["nbDist"] = presso_distributions
+		if "bootstrap_iterations" in settings:
+			settings["bootstrap_iterations"] = bootstrap_iterations
+	config["presso"]["simulation_count"] = simulation_count
 
 	all_results = []
 	comparisons = []
 	for predictor, exposure in exposures.items():
 		for outcome_name, outcome in outcomes.items():
-			data = analysis_frame(exposure, outcome)
+			data = _analysis_frame(exposure, outcome)
 			np.random.seed(seed)
-			selected_methods = METHODS + (["presso"] if len(data) >= 4 else [])
-			raw_results = methods.run_mr(
-				selected_methods,
+			selected_methods = METHOD_KEYS + (
+				["presso"] if len(data) >= 4 else []
+			)
+			raw_results = run_methods(
 				data,
-				"BETA_EXP",
-				"BETA_OUT",
-				"SE_EXP",
-				"SE_OUT",
+				selected_methods,
 				copy.deepcopy(config),
-				run_all=False,
 			)
 			all_results.extend(
-				format_results(raw_results, predictor, outcome_name, len(data))
+				_format_results(raw_results, predictor, outcome_name)
 			)
 
-			current = methods.run_mr_ivw(
-				data,
-				"BETA_EXP",
-				"BETA_OUT",
-				"SE_EXP",
-				"SE_OUT",
-			)
-			legacy = legacy_ivw(data)
+			current = inverse_variance_weighted(data)
+			legacy = _legacy_ivw(data)
 			published = PUBLISHED_TABLE_1[(predictor, outcome_name)]
 			comparisons.append({
-				"Predictor": predictor,
-				"Outcome": outcome_name,
-				"Published_Beta": published[0],
-				"Published_SE": published[1],
-				"Published_P": published[2],
-				"Legacy_Beta": legacy[0],
-				"Legacy_SE": legacy[1],
-				"Legacy_P": legacy[2],
-				"Current_Beta": float(current[1]),
-				"Current_SE": float(current[2]),
-				"Current_P": float(current[0]),
-				"Published_Match": (
+				"predictor": predictor,
+				"outcome": outcome_name,
+				"published_beta": published[0],
+				"published_standard_error": published[1],
+				"published_pvalue": published[2],
+				"legacy_beta": legacy[0],
+				"legacy_standard_error": legacy[1],
+				"legacy_pvalue": legacy[2],
+				"current_beta": current["beta"],
+				"current_standard_error": current["standard_error"],
+				"current_pvalue": current["pvalue"],
+				"published_match": (
 					abs(legacy[0] - published[0]) < 0.001
 					and abs(legacy[1] - published[1]) < 0.001
 					and abs(legacy[2] - published[2]) < 0.01
@@ -268,15 +288,15 @@ def reproduce(output_directory, bootstrap, presso_distributions, seed):
 def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--output", type=Path, default=Path("paper_reproduction"))
-	parser.add_argument("--bootstrap", type=int, default=1000)
-	parser.add_argument("--presso-distributions", type=int, default=1000)
+	parser.add_argument("--bootstrap-iterations", type=int, default=1000)
+	parser.add_argument("--simulation-count", type=int, default=1000)
 	parser.add_argument("--seed", type=int, default=0)
 	args = parser.parse_args()
 
 	results, comparison = reproduce(
 		args.output,
-		args.bootstrap,
-		args.presso_distributions,
+		args.bootstrap_iterations,
+		args.simulation_count,
 		args.seed,
 	)
 	print(comparison.to_string(index=False))

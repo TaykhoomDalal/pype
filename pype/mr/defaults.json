@@ -1,57 +1,39 @@
 {
-	"Simple Median" : 
-	{
-		"nboot" : 1000
+	"simple_median": {
+		"bootstrap_iterations": 1000
 	},
-	"Weighted Median" :
-	{
-		"nboot" : 1000
+	"weighted_median": {
+		"bootstrap_iterations": 1000
 	},
-	"Penalized Weighted Median" :
-	{
-		"nboot" : 1000,
-		"penalty_con" : 20
+	"penalized_weighted_median": {
+		"bootstrap_iterations": 1000,
+		"penalty_constant": 20
 	},
-	"Simple Mode" :
-	{
-		"nboot" : 1000, 
-		"penalty_con" : 20, 
-		"phi" : 1, 
-		"alpha" : 0.05
+	"simple_mode": {
+		"bootstrap_iterations": 1000,
+		"bandwidth_scale": 1
 	},
-	"Simple Mode (NOME)" :
-	{
-		"nboot" : 1000, 
-		"penalty_con" : 20, 
-		"phi" : 1, 
-		"alpha" : 0.05
+	"weighted_mode": {
+		"bootstrap_iterations": 1000,
+		"bandwidth_scale": 1
 	},
-	"Weighted Mode" :
-	{
-		"nboot" : 1000, 
-		"penalty_con" : 20, 
-		"phi" : 1, 
-		"alpha" : 0.05
+	"penalized_mode": {
+		"bootstrap_iterations": 1000,
+		"penalty_constant": 20,
+		"bandwidth_scale": 1
 	},
-	"Penalized Mode" :
-	{
-		"nboot" : 1000, 
-		"penalty_con" : 20, 
-		"phi" : 1, 
-		"alpha" : 0.05
+	"simple_mode_nome": {
+		"bootstrap_iterations": 1000,
+		"bandwidth_scale": 1
 	},
-	"Weighted Mode (NOME)" : 
-	{
-		"nboot" : 1000, 
-		"penalty_con" : 20, 
-		"phi" : 1, 
-		"alpha" : 0.05
+	"weighted_mode_nome": {
+		"bootstrap_iterations": 1000,
+		"bandwidth_scale": 1
 	},
-	"PRESSO" :
-	{
-		"outlier_test" : true, 
-		"distortion_test" : true, 
-		"sigthresh" : 0.05, 
-		"nbDist" : 1000
+	"presso": {
+		"run_outlier_test": true,
+		"run_distortion_test": true,
+		"significance_threshold": 0.05,
+		"simulation_count": 1000
 	}
 }

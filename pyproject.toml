@@ -30,22 +30,18 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
-  "adjustText>=1.0",
   "matplotlib>=3.7",
   "numpy>=1.24",
   "pandas>=2.0",
-  "patsy>=0.5",
   "scipy>=1.10",
   "statsmodels>=0.14",
+  "textalloc>=1.2.3",
 ]
 
 [project.optional-dependencies]
 annotations = [
   "mygene>=3.2",
   "myvariant>=1.0",
-]
-reproduce = [
-  "openpyxl>=3.1",
 ]
 test = [
   "build>=1.2",

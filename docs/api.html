@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PYPE Python API reference with signatures, parameters, return values, and examples.">
+  <title>API reference | PYPE</title>
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="compact">
+    <div class="brand">
+      <img class="logo" src="assets/pype_logo.png" alt="">
+      <span class="brand-name">PYPE</span>
+    </div>
+  </header>
+  <nav aria-label="Documentation">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Start</a>
+    <a href="file-formats.html">Formats</a>
+    <a class="current" aria-current="page" href="api.html">API</a>
+    <a href="mr.html">MR methods</a>
+    <a href="plotting.html">Plotting</a>
+    <a href="reproducibility.html">Reproduce</a>
+    <a href="roadmap.html">Roadmap</a>
+    <button class="theme-toggle" type="button" data-theme-toggle>Theme</button>
+  </nav>
+
+  <main id="content" class="wide">
+    <div class="docs-layout">
+      <article class="docs-content">
+        <p class="kicker">Python reference</p>
+        <h1>API reference</h1>
+        <div class="note">
+          Public dataframe columns and Python identifiers use snake_case. Counts end in <code>_count</code>, p-values use <code>pvalue</code>, and uncertainty uses <code>standard_error</code>.
+        </div>
+        <h2 id="top-level">Top-level functions</h2>
+        <p>The three main functions are available directly from <code>import pype</code>.</p>
+
+        <section class="method-card signature" id="phenome-wide-association">
+          <h3><code>pype.phenome_wide_association</code></h3>
+          <pre><code>phenome_wide_association(
+    phenotypes,
+    predictors,
+    outcomes=None,
+    covariates=None,
+    min_sample_count=1000,
+)</code></pre>
+          <p>Run each predictor against each selected outcome with complete-case ordinary least squares.</p>
+          <table tabindex="0">
+            <thead><tr><th scope="col">Parameter</th><th scope="col">Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>phenotypes</code></td><td>Dataframe containing outcomes and covariates.</td></tr>
+              <tr><td><code>predictors</code></td><td>Dataframe containing one or more numeric predictors with the same index.</td></tr>
+              <tr><td><code>outcomes</code></td><td>Outcome column names. Defaults to every phenotype column outside <code>covariates</code>.</td></tr>
+              <tr><td><code>covariates</code></td><td>Optional covariate column names.</td></tr>
+              <tr><td><code>min_sample_count</code></td><td>Minimum complete-case sample count required for a regression result.</td></tr>
+            </tbody>
+          </table>
+          <p><strong>Returns:</strong> A dataframe sorted by <code>pvalue</code>. See <a href="file-formats.html#phewas-results">result columns</a>.</p>
+          <pre><code>results = pype.phenome_wide_association(
+    phenotypes,
+    predictors,
+    outcomes=["trait_a", "trait_b"],
+    covariates=["age", "sex"],
+    min_sample_count=500,
+)</code></pre>
+        </section>
+
+        <section class="method-card signature" id="add-metadata">
+          <h3><code>pype.add_phenotype_metadata</code></h3>
+          <pre><code>add_phenotype_metadata(
+    results,
+    metadata,
+    result_field="outcome",
+    metadata_field="outcome",
+    description_column="description",
+    category_column="category",
+)</code></pre>
+          <p>Join phenotype descriptions and plotting categories to PheWAS results.</p>
+          <table tabindex="0">
+            <thead><tr><th scope="col">Parameter</th><th scope="col">Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>results</code></td><td>PheWAS result dataframe.</td></tr>
+              <tr><td><code>metadata</code></td><td>Metadata dataframe or path to a delimited file.</td></tr>
+              <tr><td><code>result_field</code></td><td>Identifier column in the result dataframe.</td></tr>
+              <tr><td><code>metadata_field</code></td><td>Matching identifier column in metadata.</td></tr>
+              <tr><td><code>description_column</code></td><td>Optional readable description column.</td></tr>
+              <tr><td><code>category_column</code></td><td>Required plotting category column.</td></tr>
+            </tbody>
+          </table>
+          <p><strong>Returns:</strong> A copy of the result dataframe with <code>category</code> and optional <code>description</code>.</p>
+        </section>
+
+        <section class="method-card signature" id="mendelian-randomization">
+          <h3><code>pype.mendelian_randomization</code></h3>
+          <pre><code>mendelian_randomization(
+    exposure,
+    outcome,
+    exposure_name="exposure",
+    outcome_name="outcome",
+    methods=("ivw", "egger", "weighted_median"),
+    config=None,
+    seed=None,
+)</code></pre>
+          <p>Validate and harmonize exposure and outcome summary statistics, then run selected MR estimators.</p>
+          <table tabindex="0">
+            <thead><tr><th scope="col">Parameter</th><th scope="col">Description</th></tr></thead>
+            <tbody>
+              <tr><td><code>exposure</code></td><td>Exposure summary-statistic dataframe.</td></tr>
+              <tr><td><code>outcome</code></td><td>Outcome summary-statistic dataframe.</td></tr>
+              <tr><td><code>exposure_name</code></td><td>Name written into output column names and diagnostics.</td></tr>
+              <tr><td><code>outcome_name</code></td><td>Outcome label written to the result dataframe.</td></tr>
+              <tr><td><code>methods</code></td><td>Method key, iterable of keys, or <code>"all"</code>.</td></tr>
+              <tr><td><code>config</code></td><td>Optional method parameter dictionary. Defaults load from <code>pype.mr/defaults.json</code>.</td></tr>
+              <tr><td><code>seed</code></td><td>Seed for bootstrap and empirical-distribution methods.</td></tr>
+            </tbody>
+          </table>
+          <p><strong>Returns:</strong> <code>(results, diagnostics)</code>. Results use <code>method</code>, <code>exposure</code>, <code>outcome</code>, <code>pvalue</code>, <code>beta</code>, <code>standard_error</code>, and <code>variant_count</code>. Diagnostics contains heterogeneity, MR-Egger intercept, and MR-PRESSO results when requested.</p>
+          <p>Method keys are listed on the <a href="mr.html">MR methods page</a>.</p>
+          <h4>Configuration keys</h4>
+          <table tabindex="0">
+            <thead><tr><th scope="col">Key</th><th scope="col">Used by</th></tr></thead>
+            <tbody>
+              <tr><td><code>bootstrap_iterations</code></td><td>Median and mode standard errors.</td></tr>
+              <tr><td><code>penalty_constant</code></td><td>Penalized median and penalized mode.</td></tr>
+              <tr><td><code>bandwidth_scale</code></td><td>Mode estimators.</td></tr>
+              <tr><td><code>run_outlier_test</code></td><td>MR-PRESSO outlier detection.</td></tr>
+              <tr><td><code>run_distortion_test</code></td><td>MR-PRESSO corrected-estimate comparison.</td></tr>
+              <tr><td><code>significance_threshold</code></td><td>MR-PRESSO tests.</td></tr>
+              <tr><td><code>simulation_count</code></td><td>MR-PRESSO empirical distributions.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <h2 id="plotting-api">Plotting</h2>
+        <section class="method-card signature" id="manhattan">
+          <h3><code>pype.plotting.manhattan</code></h3>
+          <pre><code>manhattan(
+    results,
+    output,
+    alpha=0.05,
+    correction="bonferroni",
+    title=None,
+    annotate=False,
+    annotation_count=2,
+    annotation_width=30,
+    color_map="tab20",
+    seed=None,
+    width=15,
+    height=8,
+    dpi=300,
+)</code></pre>
+          <p>Plot association significance by phenotype category. Writes the image and a significant-result TSV.</p>
+        </section>
+
+        <section class="method-card signature" id="category-enrichment">
+          <h3><code>pype.plotting.category_enrichment</code></h3>
+          <pre><code>category_enrichment(
+    results,
+    output,
+    alpha=0.05,
+    correction="bonferroni",
+    title=None,
+    width=15,
+    height=8,
+    dpi=300,
+)</code></pre>
+          <p>Plot the percentage of significant associations within each phenotype category.</p>
+        </section>
+
+        <section class="method-card signature" id="volcano">
+          <h3><code>pype.plotting.volcano</code></h3>
+          <pre><code>volcano(
+    results,
+    output,
+    alpha=0.05,
+    correction="bonferroni",
+    title=None,
+    annotate=False,
+    annotation_count=5,
+    annotation_width=30,
+    width=15,
+    height=8,
+    dpi=300,
+)</code></pre>
+          <p>Create one effect-size versus significance plot per predictor. Writes images and significant-result TSVs.</p>
+        </section>
+
+        <h2 id="annotation-api">Annotations</h2>
+        <section class="method-card signature" id="annotate-genes">
+          <h3><code>pype.annotations.annotate_genes</code></h3>
+          <pre><code>          annotate_genes(
+              gene_intervals_file,
+              variants,
+              results,
+              upstream_kb=10,
+              downstream_kb=10,
+              output_directory=None,
+              output_prefix="pype",
+          )</code></pre>
+                    <p>Find genes whose intervals fall within the selected upstream and downstream distances from each variant.</p>
+                    <p><code>variants</code> requires <code>variant_id</code>, <code>chromosome</code>, and <code>position</code>. Distances are in kilobases. See <a href="file-formats.html#gene-intervals">gene interval format</a>.</p>
+        </section>
+
+        <section class="method-card signature" id="annotate-variants">
+          <h3><code>pype.annotations.annotate_variants_and_genes</code></h3>
+          <pre><code>annotate_variants_and_genes(
+              results,
+              output_directory,
+              variant_fields=("dbsnp",),
+              gene_fields=("summary",),
+)</code></pre>
+          <p>Write one summary file per significant variant using MyVariant.info and MyGene.info. Install the <code>annotations</code> extra first.</p>
+        </section>
+
+        <h2 id="mr-utilities">MR utilities</h2>
+        <section class="method-card signature" id="harmonize">
+          <h3><code>pype.mr.harmonize</code></h3>
+          <pre><code>harmonize(exposure, outcome)</code></pre>
+          <p>Match variants by <code>variant_id</code> and <code>chromosome</code>, align allele pairs, flip reversed outcome effects, and remove incompatible or ambiguous palindromic rows.</p>
+        </section>
+
+        <section class="method-card signature" id="standardize-variants">
+          <h3><code>pype.mr.standardize_variants</code></h3>
+          <pre><code>standardize_variants(data)</code></pre>
+          <p>Validate required summary-statistic columns, normalize chromosome and allele values, and resolve duplicates with sample size.</p>
+        </section>
+
+                  <h2 id="errors">Common exceptions</h2>
+        <table tabindex="0">
+          <thead><tr><th scope="col">Condition</th><th scope="col">Exception</th></tr></thead>
+          <tbody>
+            <tr><td>Phenotype and predictor indexes differ</td><td><code>ValueError</code></td></tr>
+            <tr><td>Requested outcome, covariate, metadata, or MR columns are missing</td><td><code>ValueError</code></td></tr>
+            <tr><td>Exposure and outcome names are identical</td><td><code>ValueError</code></td></tr>
+            <tr><td>An unsupported MR method key is supplied</td><td><code>ValueError</code></td></tr>
+            <tr><td>Variants do not overlap or all fail harmonization</td><td><code>ValueError</code></td></tr>
+            <tr><td>Optional annotation clients are unavailable</td><td><code>ImportError</code></td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <aside class="toc">
+        <strong>On this page</strong>
+        <a href="#top-level">Top-level API</a>
+        <a href="#phenome-wide-association">PheWAS</a>
+        <a href="#add-metadata">Metadata</a>
+        <a href="#mendelian-randomization">MR</a>
+        <a href="#plotting-api">Plotting</a>
+        <a href="#annotation-api">Annotations</a>
+        <a href="#mr-utilities">MR utilities</a>
+        <a href="#errors">Exceptions</a>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    <p><a href="getting-started.html">Getting started</a> | <a href="file-formats.html">File formats</a></p>
+  </footer>
+</body>
+</html>

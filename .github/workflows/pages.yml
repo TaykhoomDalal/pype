@@ -35,8 +35,6 @@ jobs:
         run: |
           mkdir _site
           cp -R docs/. _site/
-          mkdir -p _site/assets
-          cp assets/pype_logo.png _site/assets/
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site

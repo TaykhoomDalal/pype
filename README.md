@@ -2,7 +2,7 @@
 
 PYPE runs phenome-wide association studies (PheWAS), creates PheWAS plots, and performs Mendelian randomization (MR) in Python.
 
-[Documentation](https://taykhoomdalal.github.io/pype/) | [Roadmap](https://taykhoomdalal.github.io/pype/#roadmap) | [Reference paper](https://doi.org/10.1016/j.patter.2024.100982)
+[Documentation](https://taykhoomdalal.github.io/pype/) | [Roadmap](https://taykhoomdalal.github.io/pype/roadmap.html) | [Reference paper](https://doi.org/10.1016/j.patter.2024.100982)
 
 ## Features
 
@@ -27,11 +27,11 @@ python -m pip install ".[annotations]"
 
 ## Reproduce the paper
 
-The public Mendelian randomization analyses can be rerun from the Le Goallec and Neale Lab summary statistics:
+The public Mendelian randomization analyses can be rerun from a GitHub source checkout using the Le Goallec and Neale Lab summary statistics:
 
 ```bash
-python -m pip install -e ".[reproduce]"
-python -m pype.reproduce
+python -m pip install -e . openpyxl
+python reproducibility/reproduce_paper.py
 ```
 
 See [`reproducibility/README.md`](reproducibility/README.md) for the data boundary and expected outputs.
@@ -59,11 +59,11 @@ results = pype.phenome_wide_association(
     predictors,
     outcomes=["trait_a", "trait_b"],
     covariates=["age"],
-    min_samples=3,
+    min_sample_count=3,
 )
 ```
 
-The result is a dataframe containing the phenotype, predictor, sample count, p-value, effect estimate, and standard error for each regression.
+The result uses consistent snake_case columns: `outcome`, `predictor`, `sample_count`, `total_sample_count`, `negative_log10_pvalue`, `pvalue`, `beta`, and `standard_error`.
 
 ## Plotting
 
@@ -75,9 +75,9 @@ import pype
 from pype.plotting import category_enrichment, manhattan, volcano
 
 metadata = pd.DataFrame({
-    "Data_Field": ["trait_a", "trait_b"],
-    "Description": ["Trait A", "Trait B"],
-    "Category": ["Measurements", "Diagnoses"],
+    "outcome": ["trait_a", "trait_b"],
+    "description": ["Trait A", "Trait B"],
+    "category": ["Measurements", "Diagnoses"],
 })
 results = pype.add_phenotype_metadata(results, metadata)
 
@@ -92,14 +92,14 @@ Exposure and outcome dataframes must contain:
 
 | Column | Description |
 | --- | --- |
-| `rsID` | Variant identifier |
-| `CHR` | Chromosome |
-| `Effect_Allele` | Effect allele |
-| `Non_Effect_Allele` | Other allele |
-| `BETA` | Effect estimate |
-| `SE` | Standard error |
-| `P` | P-value |
-| `N` | Sample size, optional |
+| `variant_id` | Variant identifier |
+| `chromosome` | Chromosome |
+| `effect_allele` | Effect allele |
+| `other_allele` | Other allele |
+| `beta` | Effect estimate |
+| `standard_error` | Standard error |
+| `pvalue` | P-value |
+| `sample_size` | Sample size, optional |
 
 ```python
 import pandas as pd

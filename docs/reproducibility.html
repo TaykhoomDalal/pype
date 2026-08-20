@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Reproduce the public Mendelian randomization results from the PYPE paper.">
+  <title>Paper reproduction | PYPE</title>
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="compact">
+    <div class="brand">
+      <img class="logo" src="assets/pype_logo.png" alt="">
+      <span class="brand-name">PYPE</span>
+    </div>
+  </header>
+  <nav aria-label="Documentation">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Start</a>
+    <a href="file-formats.html">Formats</a>
+    <a href="api.html">API</a>
+    <a href="mr.html">MR methods</a>
+    <a href="plotting.html">Plotting</a>
+    <a class="current" aria-current="page" href="reproducibility.html">Reproduce</a>
+    <a href="roadmap.html">Roadmap</a>
+    <button class="theme-toggle" type="button" data-theme-toggle>Theme</button>
+  </nav>
+
+  <main id="content" class="wide">
+    <div class="docs-layout">
+      <article class="docs-content">
+        <p class="kicker">2024 paper</p>
+        <h1>Reproduce the PYPE paper</h1>
+        <h2 id="scope">Reproduction scope</h2>
+        <p>The MR analyses use public summary statistics and can be reproduced automatically. The participant-level PheWAS requires the original authorized study data.</p>
+        <div class="grid">
+          <article class="card">
+            <h3>Public reproduction</h3>
+            <p>Abdomen and liver aging variants, four outcome GWAS, all implemented MR methods, and Table 1 IVW comparisons.</p>
+          </article>
+          <article class="card">
+            <h3>Study-data reproduction</h3>
+            <p>The full PheWAS, 15,082 tests, Table S20, and the main PheWAS figures require the study cohort.</p>
+          </article>
+        </div>
+
+        <h2 id="run">Run the public analysis</h2>
+        <p>Run these commands from a GitHub source checkout of the repository:</p>
+                <pre><code>python -m pip install -e . openpyxl
+        python reproducibility/reproduce_paper.py \
+  --output paper_reproduction \
+  --bootstrap-iterations 1000 \
+  --simulation-count 1000 \
+  --seed 0</code></pre>
+        <p>The first run streams about 2 GB of compressed public GWAS files and saves only the selected rows. Later runs reuse the extracted inputs.</p>
+
+        <h2 id="sources">Public sources</h2>
+        <table tabindex="0">
+          <caption>Public data sources used by the reproduction script.</caption>
+          <thead><tr><th scope="col">Input</th><th scope="col">Source</th></tr></thead>
+          <tbody>
+            <tr><td>Abdomen and liver aging variants</td><td>Le Goallec et al. Supplementary Data 1.</td></tr>
+            <tr><td>Glycated haemoglobin</td><td>Neale Lab field 30750 raw GWAS.</td></tr>
+            <tr><td>Body mass index</td><td>Neale Lab field 21001 raw GWAS.</td></tr>
+            <tr><td>Glucose</td><td>Neale Lab field 30740 raw GWAS.</td></tr>
+            <tr><td>Waist circumference</td><td>Neale Lab field 48 raw GWAS.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="outputs">Outputs</h2>
+        <table tabindex="0">
+          <caption>Files created by <code>reproducibility/reproduce_paper.py</code>.</caption>
+          <thead><tr><th scope="col">File</th><th scope="col">Contents</th></tr></thead>
+          <tbody>
+            <tr><td><code>mr_results.tsv</code></td><td>Current results for every method and exposure-outcome pair.</td></tr>
+            <tr><td><code>ivw_comparison.tsv</code></td><td>Published Table 1 values, legacy PYPE IVW values, and corrected current values.</td></tr>
+            <tr><td><code>inputs/</code></td><td>Small extracted public summary-statistic subsets.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="comparison">Table 1 comparison</h2>
+        <p>All eight legacy calculations match the published values within the displayed precision. The current IVW standard error follows the TwoSampleMR under-dispersion correction.</p>
+        <table class="comparison" tabindex="0">
+          <caption>Published IVW values reproduced by the legacy calculation.</caption>
+          <thead>
+            <tr><th scope="col">Predictor</th><th scope="col">Outcome</th><th scope="col">Published beta</th><th scope="col">Published SE</th><th scope="col">Published p</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Abdomen</td><td>HbA1C</td><td>0.0265</td><td>0.0204</td><td>0.194</td></tr>
+            <tr><td>Abdomen</td><td>BMI</td><td>0.0061</td><td>0.1158</td><td>0.958</td></tr>
+            <tr><td>Abdomen</td><td>Glucose</td><td>-0.0151</td><td>0.0132</td><td>0.254</td></tr>
+            <tr><td>Abdomen</td><td>Waist circumference</td><td>0.3556</td><td>0.1086</td><td>0.0011</td></tr>
+            <tr><td>Liver</td><td>HbA1C</td><td>0.0153</td><td>0.0441</td><td>0.729</td></tr>
+            <tr><td>Liver</td><td>BMI</td><td>-0.0122</td><td>0.1231</td><td>0.921</td></tr>
+            <tr><td>Liver</td><td>Glucose</td><td>0.0066</td><td>0.0072</td><td>0.358</td></tr>
+            <tr><td>Liver</td><td>Waist circumference</td><td>0.2509</td><td>0.1570</td><td>0.110</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="difference">Why some current p-values differ</h2>
+        <p>The original IVW implementation used the raw statsmodels residual-scaled standard error. TwoSampleMR prevents under-dispersion from making an IVW standard error smaller than the fixed-effect value. The current PYPE implementation applies that correction.</p>
+        <p>Effect estimates remain the same. Differences appear in standard errors and p-values only when the fitted residual scale is below one.</p>
+
+        <h2 id="randomness">Bootstrap methods</h2>
+        <p>Median, mode, and MR-PRESSO uncertainty estimates use random sampling. Fix the seed and number of bootstrap or empirical distributions when comparing runs. The original paper did not record a common seed for every table, so point estimates are the stable comparison target.</p>
+      </article>
+
+      <aside class="toc">
+        <strong>On this page</strong>
+        <a href="#scope">Scope</a>
+        <a href="#run">Run</a>
+        <a href="#sources">Sources</a>
+        <a href="#outputs">Outputs</a>
+        <a href="#comparison">Table 1</a>
+        <a href="#difference">IVW correction</a>
+        <a href="#randomness">Bootstrap methods</a>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    <p><a href="https://doi.org/10.1016/j.patter.2024.100982">Reference paper</a> | <a href="mr.html">MR methods</a></p>
+  </footer>
+</body>
+</html>
