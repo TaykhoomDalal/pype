@@ -201,6 +201,10 @@ main.wide {
   max-width: 1220px;
 }
 
+main > section + section {
+  margin-top: 5rem;
+}
+
 [id] {
   scroll-margin-top: 5rem;
 }
@@ -238,7 +242,6 @@ h2 {
 .lede {
   color: var(--muted);
   font-size: 1.15rem;
-  max-width: 820px;
 }
 
 .kicker {
