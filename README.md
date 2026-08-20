@@ -1,6 +1,6 @@
 <h1 align="center">
-  <img src="assets/pype_logo.png" width="48" alt="">
-  <img src="docs/assets/pype_wordmark.png" width="180" alt="PYPE">
+  <img src="https://raw.githubusercontent.com/TaykhoomDalal/pype/v1.0.1/assets/pype_logo.png" width="48" alt="">
+  <img src="https://raw.githubusercontent.com/TaykhoomDalal/pype/v1.0.1/docs/assets/pype_wordmark.png" width="180" alt="PYPE">
 </h1>
 
 <p align="center"><strong>Python pipeline for PheWAS and Mendelian randomization</strong></p>
