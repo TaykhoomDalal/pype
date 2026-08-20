@@ -198,7 +198,7 @@ main {
 }
 
 main.wide {
-  max-width: 1220px;
+  max-width: none;
 }
 
 main > section + section {
