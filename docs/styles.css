@@ -238,20 +238,6 @@ h2 {
   font-size: 1.15rem;
 }
 
-.kicker {
-  color: var(--link);
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  margin: 0 0 0.35rem;
-  text-transform: uppercase;
-}
-
-.kicker + h1,
-.kicker + h2 {
-  margin-top: 0;
-}
-
 .workflow {
   counter-reset: step;
   display: grid;

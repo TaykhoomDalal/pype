@@ -44,14 +44,12 @@
 
   <main id="content">
     <section>
-      <p class="kicker">Overview</p>
       <h2>What PYPE does</h2>
       <p class="lede">PYPE is a Python package for phenome-wide association studies, result visualization, variant annotation, and Mendelian randomization.</p>
       <p>It was developed for investigator-driven analyses of biobank-scale data. Researchers can test genetic variants, risk scores, biomarkers, or other numeric predictors against many phenotypes while adjusting for covariates such as age, sex, and genetic principal components.</p>
     </section>
 
     <section>
-      <p class="kicker">PheWAS</p>
       <h2>What is a phenome-wide association study?</h2>
       <p>A phenome-wide association study, or PheWAS, tests one or more predictors against a large set of phenotypes. It is useful when the question is broad: which diseases, measurements, laboratory values, or other traits are associated with a genetic variant or phenotype of interest?</p>
       <p>PYPE runs the predictor-outcome regressions, applies sample-size requirements, and returns the effect estimate, standard error, and p-value for each association. It also provides multiple-testing correction, phenotype metadata, and Manhattan, volcano, and category enrichment plots.</p>
@@ -61,14 +59,12 @@
     </section>
 
     <section>
-      <p class="kicker">Mendelian randomization</p>
       <h2>What is Mendelian randomization?</h2>
       <p>Mendelian randomization, or MR, uses genetic variants associated with an exposure as instruments to estimate the exposure's effect on an outcome. Because genetic variants are assigned before disease develops, MR can provide evidence about whether an observed relationship may be causal.</p>
       <p>MR depends on assumptions about instrument strength, confounding, and horizontal pleiotropy. PYPE includes inverse variance weighted, MR-Egger, median, mode, and MR-PRESSO methods so results can be compared across estimators with different assumptions.</p>
     </section>
 
     <section>
-      <p class="kicker">Combined workflow</p>
       <h2>Why use PheWAS and MR together?</h2>
       <p>PheWAS and MR answer different questions. PheWAS is a broad screen for associations across many traits. MR is a focused follow-up that tests whether evidence is consistent with an exposure affecting an outcome.</p>
       <p>PYPE supports both steps in one package: run a PheWAS, add phenotype descriptions and categories, inspect the results in plots, then use suitable GWAS summary statistics for MR. The methods can also be used independently.</p>
@@ -93,7 +89,6 @@
     </section>
 
     <section>
-      <p class="kicker">Documentation</p>
       <h2>Choose a guide</h2>
       <div class="grid">
         <article class="card">
