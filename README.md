@@ -137,17 +137,22 @@ Available methods:
 
 Tests use synthetic data. Study data are supplied by users under the access terms of their data source.
 
-## Citation
-
-Dalal T, Patel CJ. PYPE: A pipeline for phenome-wide association and Mendelian randomization in investigator-driven biobank scale analysis. Patterns. 2024. https://doi.org/10.1016/j.patter.2024.100982
-
-## Development
-
-```bash
-python -m pytest
-python -m build
-```
-
 ## License
 
 Apache License 2.0. See `LICENSE.md`.
+
+## Citation
+
+```bibtex
+@article{Dalal2024PYPE,
+  title   = {PYPE: A pipeline for phenome-wide association and Mendelian randomization in investigator-driven biobank scale analysis},
+  author  = {Dalal, Taykhoom and Patel, Chirag J.},
+  journal = {Patterns},
+  year    = {2024},
+  volume  = {5},
+  number  = {6},
+  pages   = {100982},
+  doi     = {10.1016/j.patter.2024.100982},
+  url     = {https://doi.org/10.1016/j.patter.2024.100982}
+}
+```
