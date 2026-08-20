@@ -4,8 +4,8 @@
 
 It downloads:
 
-- Le Goallec et al. Supplementary Data 1 for the abdomen and liver aging variants.
-- Neale Lab raw GWAS summary statistics for glycated haemoglobin, body mass index, glucose, and waist circumference.
+- [Le Goallec et al. Supplementary Data 1](https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fs41467-022-29525-9/MediaObjects/41467_2022_29525_MOESM4_ESM.xlsx) for the abdomen and liver aging variants.
+- Neale Lab raw GWAS summary statistics for [glycated haemoglobin](https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/30750_raw.gwas.imputed_v3.both_sexes.varorder.tsv.bgz), [body mass index](https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/21001_raw.gwas.imputed_v3.both_sexes.tsv.bgz), [glucose](https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/30740_raw.gwas.imputed_v3.both_sexes.varorder.tsv.bgz), and [waist circumference](https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/48_raw.gwas.imputed_v3.both_sexes.tsv.bgz).
 
 The first run streams about 2 GB of compressed public GWAS files and saves only the selected variant rows. Later runs reuse those small extracted files.
 
