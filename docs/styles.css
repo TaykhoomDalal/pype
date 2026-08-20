@@ -215,6 +215,10 @@ h2 {
   padding-bottom: 0.35rem;
 }
 
+.docs-content > h1 + h2 {
+  margin-top: 1.5rem;
+}
+
 .compact {
   padding-block: 1rem;
 }
