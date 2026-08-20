@@ -77,5 +77,14 @@ def test_sitemap_lists_public_pages():
 		assert url in locations
 
 
+def test_reproduction_command_is_not_indented():
+	page = (ROOT / "docs/reproducibility.html").read_text()
+	assert (
+		"python -m pip install -e . openpyxl\n"
+		"python reproducibility/reproduce_paper.py \\\n"
+		"  --output paper_reproduction"
+	) in page
+
+
 if __name__ == "__main__":
 	test_documentation_links_and_anchors_exist()
