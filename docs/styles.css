@@ -341,6 +341,11 @@ h2 {
   border-left: 5px solid var(--green);
 }
 
+.source-link {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+}
+
 .gallery {
   display: grid;
   gap: 2rem;
