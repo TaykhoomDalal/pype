@@ -1,2 +1,12 @@
-pype/*.sh
-pype/__pycache__/
+*.egg-info/
+.coverage
+.pytest_cache/
+.venv/
+__pycache__/
+build/
+dist/
+example_output/
+paper_reproduction/
+*.py[cod]
+*.so
+.DS_Store

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Current PYPE development status and planned work.">
+  <title>Roadmap | PYPE</title>
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="compact">
+    <div class="brand">
+      <img class="logo" src="assets/pype_logo.png" alt="">
+      <span class="brand-name">PYPE</span>
+    </div>
+  </header>
+  <nav aria-label="Documentation">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Start</a>
+    <a href="file-formats.html">Formats</a>
+    <a href="api.html">API</a>
+    <a href="mr.html">MR methods</a>
+    <a href="plotting.html">Plotting</a>
+    <a href="reproducibility.html">Reproduce</a>
+    <a class="current" aria-current="page" href="roadmap.html">Roadmap</a>
+    <button class="theme-toggle" type="button" data-theme-toggle>Theme</button>
+  </nav>
+
+  <main id="content">
+    <h1>Development roadmap</h1>
+
+    <div class="method-card">
+      <h3>Support more studies <span class="status partial">Partial</span></h3>
+      <p>Current support is generic at the dataframe level. Numeric outcomes, predictors, and covariates can come from any study.</p>
+      <p><strong>Next:</strong> logistic regression, survival models, categorical handling, and adapters for common cohort exports.</p>
+    </div>
+
+    <div class="method-card">
+      <h3>Faster PheWAS execution <span class="status planned">Planned</span></h3>
+      <p>The current implementation performs one statsmodels fit per predictor-outcome pair.</p>
+      <p><strong>Next:</strong> residualize covariates once, batch regressions with NumPy, benchmark memory and runtime, then add parallel execution only where it improves measured workloads.</p>
+    </div>
+
+    <div class="method-card">
+      <h3>More visualizations <span class="status partial">Partial</span></h3>
+      <p>Manhattan, volcano, and category enrichment plots are implemented with deterministic options and result tables.</p>
+      <p><strong>Next:</strong> QQ plots, forest plots, effect-comparison plots, and interactive output when a concrete analysis needs them.</p>
+    </div>
+
+    <div class="method-card">
+      <h3>BioThings and nearby genes <span class="status partial">Partial</span></h3>
+      <p>BioThings clients provide functional variant and gene summaries. Nearby-gene mapping uses caller-supplied genomic intervals.</p>
+      <p><strong>Next:</strong> add an assembly-aware coordinate service for nearby genes while keeping local interval files as an offline option.</p>
+    </div>
+
+    <div class="method-card">
+      <h3>More MR methods <span class="status partial">Partial</span></h3>
+      <p>Eleven estimators are implemented and their numerical behavior has been compared with TwoSampleMR and MR-PRESSO.</p>
+      <p><strong>Next:</strong> prioritize methods with primary references, clear assumptions, maintained comparison implementations, and real user demand.</p>
+    </div>
+
+    <div class="method-card">
+      <h3>Robust harmonization <span class="status strong">Improved</span></h3>
+      <p>Current harmonization validates one canonical schema, normalizes chromosome and allele values, aligns allele pairs and strand complements, flips reversed effects, resolves duplicates, and removes incompatible or ambiguous rows.</p>
+      <p><strong>Next:</strong> allele-frequency handling for palindromic variants, normalized indel representation, multiallelic validation, and explicit harmonization reports.</p>
+    </div>
+
+    <div class="method-card">
+      <h3>Documentation <span class="status strong">Improved</span></h3>
+      <p>The site now covers workflows, schemas, API usage, MR method selection, plotting examples, and paper reproduction.</p>
+      <p><strong>Next:</strong> add focused tutorials and generated signatures when the public API changes.</p>
+    </div>
+
+  </main>
+
+  <footer>
+    <p><a href="https://github.com/TaykhoomDalal/pype/issues">GitHub issues</a> | <a href="reproducibility.html">Paper reproduction</a></p>
+  </footer>
+</body>
+</html>

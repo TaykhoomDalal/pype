@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PYPE documentation for PheWAS, plotting, phenotype metadata, and Mendelian randomization.">
+  <meta property="og:title" content="PYPE documentation">
+  <meta property="og:description" content="PheWAS analysis, visualization, phenotype metadata, and Mendelian randomization in Python.">
+  <meta property="og:image" content="https://taykhoomdalal.github.io/pype/assets/pype_logo.png">
+  <link rel="canonical" href="https://taykhoomdalal.github.io/pype/">
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <title>PYPE documentation</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header>
+    <div class="brand">
+      <img class="logo" src="assets/pype_logo.png" alt="">
+      <h1>PYPE</h1>
+    </div>
+    <p>PheWAS analysis, visualization, phenotype metadata, and Mendelian randomization in Python.</p>
+    <div class="actions">
+      <a class="button primary" href="getting-started.html">Get started</a>
+      <a class="button" href="https://github.com/TaykhoomDalal/pype">View on GitHub</a>
+      <a class="button" href="https://doi.org/10.1016/j.patter.2024.100982">Read the paper</a>
+    </div>
+  </header>
+
+  <nav aria-label="Documentation">
+    <a class="current" aria-current="page" href="index.html">Overview</a>
+    <a href="getting-started.html">Start</a>
+    <a href="file-formats.html">Formats</a>
+    <a href="api.html">API</a>
+    <a href="mr.html">MR methods</a>
+    <a href="plotting.html">Plotting</a>
+    <a href="reproducibility.html">Reproduce</a>
+    <a href="roadmap.html">Roadmap</a>
+    <button class="theme-toggle" type="button" data-theme-toggle>Theme</button>
+  </nav>
+
+  <main id="content">
+    <section>
+      <h2>What PYPE does</h2>
+      <p class="lede">PYPE is a Python package for phenome-wide association studies, result visualization, variant annotation, and Mendelian randomization.</p>
+      <p>It was developed for investigator-driven analyses of biobank-scale data. Researchers can test genetic variants, risk scores, biomarkers, or other numeric predictors against many phenotypes while adjusting for covariates such as age, sex, and genetic principal components.</p>
+    </section>
+
+    <section>
+      <h2>What is a phenome-wide association study?</h2>
+      <p>A phenome-wide association study, or PheWAS, tests one or more predictors against a large set of phenotypes. It is useful when the question is broad: which diseases, measurements, laboratory values, or other traits are associated with a genetic variant or phenotype of interest?</p>
+      <p>PYPE runs the predictor-outcome regressions, applies sample-size requirements, and returns the effect estimate, standard error, and p-value for each association. It also provides multiple-testing correction, phenotype metadata, and Manhattan, volcano, and category enrichment plots.</p>
+      <div class="note">
+        A PheWAS finds associations. An association may reflect causation, reverse causation, confounding, selection bias, or chance.
+      </div>
+    </section>
+
+    <section>
+      <h2>What is Mendelian randomization?</h2>
+      <p>Mendelian randomization, or MR, uses genetic variants associated with an exposure as instruments to estimate the exposure's effect on an outcome. Because genetic variants are assigned before disease develops, MR can provide evidence about whether an observed relationship may be causal.</p>
+      <p>MR depends on assumptions about instrument strength, confounding, and horizontal pleiotropy. PYPE includes inverse variance weighted, MR-Egger, median, mode, and MR-PRESSO methods so results can be compared across estimators with different assumptions.</p>
+    </section>
+
+    <section>
+      <h2>Why use PheWAS and MR together?</h2>
+      <p>PheWAS and MR answer different questions. PheWAS is a broad screen for associations across many traits. MR is a focused follow-up that tests whether evidence is consistent with an exposure affecting an outcome.</p>
+      <p>PYPE supports both steps in one package: run a PheWAS, add phenotype descriptions and categories, inspect the results in plots, then use suitable GWAS summary statistics for MR. The methods can also be used independently.</p>
+      <div class="workflow">
+        <article class="step">
+          <h3>Run PheWAS</h3>
+          <p>Test selected predictors against many phenotypes with optional covariates.</p>
+        </article>
+        <article class="step">
+          <h3>Review results</h3>
+          <p>Apply multiple-testing correction and examine significant associations in plots.</p>
+        </article>
+        <article class="step">
+          <h3>Add annotations</h3>
+          <p>Attach phenotype metadata and map significant variants to nearby genes.</p>
+        </article>
+        <article class="step">
+          <h3>Run MR</h3>
+          <p>Harmonize exposure and outcome summary statistics and compare MR estimators.</p>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Choose a guide</h2>
+      <div class="grid">
+        <article class="card">
+          <h3><a href="getting-started.html">Getting started</a></h3>
+          <p>Install PYPE and run a first PheWAS, plot, and MR analysis.</p>
+        </article>
+        <article class="card">
+          <h3><a href="file-formats.html">File formats</a></h3>
+          <p>See every required dataframe and column, including gene interval files.</p>
+        </article>
+        <article class="card">
+          <h3><a href="api.html">API reference</a></h3>
+          <p>Review function signatures, parameters, return values, and examples.</p>
+        </article>
+        <article class="card">
+          <h3><a href="mr.html">MR methods</a></h3>
+          <p>Compare assumptions, use cases, caveats, and primary citations.</p>
+        </article>
+        <article class="card">
+          <h3><a href="plotting.html">Plotting gallery</a></h3>
+          <p>View every plot type and the options that control annotations and styling.</p>
+        </article>
+        <article class="card">
+          <h3><a href="reproducibility.html">Paper reproduction</a></h3>
+          <p>Rerun the public MR analyses and compare legacy and corrected IVW results.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>PYPE is released under the Apache License 2.0.</p>
+    <p><a href="https://github.com/TaykhoomDalal/pype">GitHub repository</a> | <a href="https://doi.org/10.1016/j.patter.2024.100982">Reference paper</a></p>
+  </footer>
+</body>
+</html>

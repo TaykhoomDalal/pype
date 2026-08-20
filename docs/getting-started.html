@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Install PYPE and run a first PheWAS, plot, and Mendelian randomization analysis.">
+  <title>Getting started | PYPE</title>
+  <link rel="icon" href="assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <header class="compact">
+    <div class="brand">
+      <img class="logo" src="assets/pype_logo.png" alt="">
+      <span class="brand-name">PYPE</span>
+    </div>
+  </header>
+  <nav aria-label="Documentation">
+    <a href="index.html">Overview</a>
+    <a class="current" aria-current="page" href="getting-started.html">Start</a>
+    <a href="file-formats.html">Formats</a>
+    <a href="api.html">API</a>
+    <a href="mr.html">MR methods</a>
+    <a href="plotting.html">Plotting</a>
+    <a href="reproducibility.html">Reproduce</a>
+    <a href="roadmap.html">Roadmap</a>
+    <button class="theme-toggle" type="button" data-theme-toggle>Theme</button>
+  </nav>
+
+  <main id="content" class="wide">
+    <div class="docs-layout">
+      <article class="docs-content">
+        <h1>Install and run PYPE</h1>
+        <h2>Install PYPE</h2>
+        <p>Install the current development branch directly from GitHub:</p>
+        <pre><code>python -m pip install "git+https://github.com/TaykhoomDalal/pype.git@development"</code></pre>
+        <p>For an editable checkout with tests:</p>
+        <pre><code>git clone --branch development https://github.com/TaykhoomDalal/pype.git
+cd pype
+python -m pip install -e ".[test]"</code></pre>
+        <p>Functional variant and gene summaries use optional BioThings clients:</p>
+        <pre><code>python -m pip install ".[annotations]"</code></pre>
+
+        <h2 id="choose">Choose a workflow</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>PheWAS</h3>
+            <p>Use aligned phenotype and predictor dataframes when you want to test many outcomes.</p>
+          </article>
+          <article class="card">
+            <h3>Plot existing results</h3>
+            <p>Start with a PheWAS result dataframe, add categories, and call the plotting functions.</p>
+          </article>
+          <article class="card">
+            <h3>Mendelian randomization</h3>
+            <p>Use exposure and outcome summary-statistic dataframes with matching variants.</p>
+          </article>
+        </div>
+
+        <h2 id="first-phewas">First PheWAS</h2>
+        <pre><code>import pandas as pd
+import pype
+
+phenotypes = pd.DataFrame({
+    "trait_a": [1.2, 2.0, 1.5, 3.1],
+    "trait_b": [0.0, 1.0, 0.0, 1.0],
+    "age": [50, 61, 47, 70],
+})
+
+predictors = pd.DataFrame({
+    "variant_1": [0, 1, 1, 2],
+})
+
+results = pype.phenome_wide_association(
+    phenotypes,
+    predictors,
+    outcomes=["trait_a", "trait_b"],
+    covariates=["age"],
+    min_sample_count=3,
+)</code></pre>
+        <p>PYPE returns one row per predictor-outcome regression. See <a href="file-formats.html#phewas-results">PheWAS results</a> for the output columns.</p>
+
+        <h2 id="first-plot">Add metadata and plot</h2>
+        <pre><code>from pype.plotting import manhattan
+
+metadata = pd.DataFrame({
+    "outcome": ["trait_a", "trait_b"],
+    "description": ["Trait A", "Trait B"],
+    "category": ["Measurements", "Diagnoses"],
+})
+
+results = pype.add_phenotype_metadata(results, metadata)
+manhattan(results, "manhattan.png", annotate=True, seed=0)</code></pre>
+
+        <h2 id="first-mr">First MR analysis</h2>
+        <pre><code>exposure = pd.read_csv("exposure.tsv", sep="\t")
+outcome = pd.read_csv("outcome.tsv", sep="\t")
+
+mr_results, diagnostics = pype.mendelian_randomization(
+    exposure,
+    outcome,
+    exposure_name="exposure_trait",
+    outcome_name="outcome_trait",
+    methods=("ivw", "egger", "weighted_median"),
+    seed=0,
+)</code></pre>
+        <p>Start with IVW as the main estimate, then compare estimators with different assumptions. The <a href="mr.html">MR methods guide</a> explains when each method is useful.</p>
+
+        <h2 id="checks">Before interpreting results</h2>
+        <ul>
+          <li>Confirm that phenotype and predictor rows use the same sample index.</li>
+          <li>Check complete-case sample counts in the PheWAS results.</li>
+          <li>Choose a multiple-testing correction before reviewing associations.</li>
+          <li>Confirm exposure and outcome GWAS use the same genome assembly.</li>
+          <li>Review harmonization warnings and the number of retained instruments.</li>
+          <li>Compare several MR estimators rather than treating one p-value as a causal conclusion.</li>
+        </ul>
+      </article>
+
+      <aside class="toc">
+        <strong>On this page</strong>
+        <a href="#choose">Choose a workflow</a>
+        <a href="#first-phewas">First PheWAS</a>
+        <a href="#first-plot">First plot</a>
+        <a href="#first-mr">First MR</a>
+        <a href="#checks">Checks</a>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    <p><a href="api.html">API reference</a> | <a href="file-formats.html">File formats</a></p>
+  </footer>
+</body>
+</html>

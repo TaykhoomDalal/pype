@@ -1,0 +1,39 @@
+{
+	"simple_median": {
+		"bootstrap_iterations": 1000
+	},
+	"weighted_median": {
+		"bootstrap_iterations": 1000
+	},
+	"penalized_weighted_median": {
+		"bootstrap_iterations": 1000,
+		"penalty_constant": 20
+	},
+	"simple_mode": {
+		"bootstrap_iterations": 1000,
+		"bandwidth_scale": 1
+	},
+	"weighted_mode": {
+		"bootstrap_iterations": 1000,
+		"bandwidth_scale": 1
+	},
+	"penalized_mode": {
+		"bootstrap_iterations": 1000,
+		"penalty_constant": 20,
+		"bandwidth_scale": 1
+	},
+	"simple_mode_nome": {
+		"bootstrap_iterations": 1000,
+		"bandwidth_scale": 1
+	},
+	"weighted_mode_nome": {
+		"bootstrap_iterations": 1000,
+		"bandwidth_scale": 1
+	},
+	"presso": {
+		"run_outlier_test": true,
+		"run_distortion_test": true,
+		"significance_threshold": 0.05,
+		"simulation_count": 1000
+	}
+}

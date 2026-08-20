@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pype-mr"
+version = "0.1.0"
+description = "PheWAS analysis, visualization, and Mendelian randomization in Python"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE.md"]
+authors = [
+  {name = "Taykhoom Dalal"},
+]
+keywords = [
+  "biobank",
+  "mendelian-randomization",
+  "phenome-wide-association-study",
+  "phewas",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+  "matplotlib>=3.7",
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "scipy>=1.10",
+  "statsmodels>=0.14",
+  "textalloc>=1.2.3",
+]
+
+[project.optional-dependencies]
+annotations = [
+  "mygene>=3.2",
+  "myvariant>=1.0",
+]
+test = [
+  "build>=1.2",
+  "pytest>=8",
+]
+
+[project.urls]
+Homepage = "https://github.com/TaykhoomDalal/pype"
+Documentation = "https://taykhoomdalal.github.io/pype/"
+Issues = "https://github.com/TaykhoomDalal/pype/issues"
+Paper = "https://doi.org/10.1016/j.patter.2024.100982"
+
+[tool.setuptools.packages.find]
+include = ["pype*"]
+
+[tool.setuptools.package-data]
+"pype.mr" = ["defaults.json"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
