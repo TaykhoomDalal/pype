@@ -43,7 +43,7 @@
 
         <section class="method-card signature" id="phenome-wide-association">
           <h3><code>pype.phenome_wide_association</code></h3>
-          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/development/pype/phewas.py#L58">View source</a>
+          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/main/pype/phewas.py#L58">View source</a>
           <pre><code>phenome_wide_association(
     phenotypes,
     predictors,
@@ -74,7 +74,7 @@
 
         <section class="method-card signature" id="add-metadata">
           <h3><code>pype.add_phenotype_metadata</code></h3>
-          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/development/pype/metadata.py#L6">View source</a>
+          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/main/pype/metadata.py#L6">View source</a>
           <pre><code>add_phenotype_metadata(
     results,
     metadata,
@@ -100,7 +100,7 @@
 
         <section class="method-card signature" id="mendelian-randomization">
           <h3><code>pype.mendelian_randomization</code></h3>
-          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/development/pype/mr/analysis.py#L31">View source</a>
+          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/main/pype/mr/analysis.py#L31">View source</a>
           <pre><code>mendelian_randomization(
     exposure,
     outcome,
@@ -143,7 +143,7 @@
         <h2 id="plotting-api">Plotting</h2>
         <section class="method-card signature" id="manhattan">
           <h3><code>pype.plotting.manhattan</code></h3>
-          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/development/pype/plotting.py#L136">View source</a>
+          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/main/pype/plotting.py#L136">View source</a>
           <pre><code>manhattan(
     results,
     output,
@@ -164,7 +164,7 @@
 
         <section class="method-card signature" id="category-enrichment">
           <h3><code>pype.plotting.category_enrichment</code></h3>
-          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/development/pype/plotting.py#L253">View source</a>
+          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/main/pype/plotting.py#L253">View source</a>
           <pre><code>category_enrichment(
     results,
     output,
@@ -180,7 +180,7 @@
 
         <section class="method-card signature" id="volcano">
           <h3><code>pype.plotting.volcano</code></h3>
-          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/development/pype/plotting.py#L297">View source</a>
+          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/main/pype/plotting.py#L297">View source</a>
           <pre><code>volcano(
     results,
     output,
@@ -200,7 +200,7 @@
         <h2 id="annotation-api">Annotations</h2>
         <section class="method-card signature" id="annotate-genes">
           <h3><code>pype.annotations.annotate_genes</code></h3>
-          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/development/pype/annotations.py#L70">View source</a>
+          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/main/pype/annotations.py#L70">View source</a>
           <pre><code>annotate_genes(
     gene_intervals_file,
     variants,
@@ -216,7 +216,7 @@
 
         <section class="method-card signature" id="annotate-variants">
           <h3><code>pype.annotations.annotate_variants_and_genes</code></h3>
-          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/development/pype/annotations.py#L121">View source</a>
+          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/main/pype/annotations.py#L121">View source</a>
           <pre><code>annotate_variants_and_genes(
     results,
     output_directory,
@@ -229,14 +229,14 @@
         <h2 id="mr-utilities">MR utilities</h2>
         <section class="method-card signature" id="harmonize">
           <h3><code>pype.mr.harmonize</code></h3>
-          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/development/pype/mr/harmonization.py#L125">View source</a>
+          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/main/pype/mr/harmonization.py#L125">View source</a>
           <pre><code>harmonize(exposure, outcome)</code></pre>
           <p>Match variants by <code>variant_id</code> and <code>chromosome</code>, align allele pairs, flip reversed outcome effects, and remove incompatible or ambiguous palindromic rows.</p>
         </section>
 
         <section class="method-card signature" id="standardize-variants">
           <h3><code>pype.mr.standardize_variants</code></h3>
-          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/development/pype/mr/harmonization.py#L18">View source</a>
+          <a class="source-link" href="https://github.com/TaykhoomDalal/pype/blob/main/pype/mr/harmonization.py#L18">View source</a>
           <pre><code>standardize_variants(data)</code></pre>
           <p>Validate required summary-statistic columns, normalize chromosome and allele values, and resolve duplicates with sample size.</p>
         </section>
