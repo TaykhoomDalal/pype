@@ -31,8 +31,10 @@
     <a href="#formats">File formats</a>
     <a href="#plotting">Plotting</a>
     <a href="#mr">MR</a>
+    <a href="#reproduce">Reproduce</a>
     <a href="#genes">Gene annotation</a>
     <a href="#api">API</a>
+    <a href="#roadmap">Roadmap</a>
   </nav>
 
   <main id="content">
@@ -218,6 +220,14 @@ volcano(results, "volcano.png")</code></pre>
       <p>UCSC RefSeq and GENCODE interval exports can be used. Choose GRCh37/hg19 or GRCh38 to match the variant coordinates.</p>
     </section>
 
+    <section id="reproduce">
+      <h2>Reproduce the paper</h2>
+      <p>The public Mendelian randomization analyses can be rerun from the Le Goallec and Neale Lab summary statistics.</p>
+      <pre><code>python -m pip install -e ".[reproduce]"
+python -m pype.reproduce</code></pre>
+      <p>The script streams the public GWAS files, keeps the paper variants, runs the current MR methods, and writes a comparison with Table 1. The participant-level PheWAS requires the original authorized study data.</p>
+    </section>
+
     <section id="api">
       <h2>Public API</h2>
       <div class="grid">
@@ -238,6 +248,52 @@ volcano(results, "volcano.png")</code></pre>
           <p>Create Manhattan, volcano, and category enrichment plots.</p>
         </article>
       </div>
+    </section>
+
+    <section id="roadmap">
+      <h2>Roadmap</h2>
+      <table>
+        <thead>
+          <tr><th>Original plan</th><th>Status</th><th>Next work</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Support more studies</td>
+            <td><span class="status partial">Partial</span></td>
+            <td>Add logistic and survival models, categorical handling, and adapters for common cohort tables.</td>
+          </tr>
+          <tr>
+            <td>Faster PheWAS execution</td>
+            <td><span class="status planned">Planned</span></td>
+            <td>Replace repeated statsmodels fits with residualization and batched NumPy operations, then benchmark.</td>
+          </tr>
+          <tr>
+            <td>More visualizations</td>
+            <td><span class="status partial">Partial</span></td>
+            <td>Add QQ, forest, effect-comparison, and optional interactive plots when there is a concrete use case.</td>
+          </tr>
+          <tr>
+            <td>BioThings gene annotation</td>
+            <td><span class="status partial">Partial</span></td>
+            <td>Keep BioThings for functional annotations and add an assembly-aware coordinate service for nearby genes.</td>
+          </tr>
+          <tr>
+            <td>More MR methods</td>
+            <td><span class="status partial">Partial</span></td>
+            <td>Add methods with authoritative references and reproducible comparison data rather than targeting every published estimator.</td>
+          </tr>
+          <tr>
+            <td>Robust MR harmonization</td>
+            <td><span class="status strong">Improved</span></td>
+            <td>Add allele-frequency handling for palindromic variants, indel normalization, and multiallelic validation.</td>
+          </tr>
+          <tr>
+            <td>Documentation</td>
+            <td><span class="status strong">Improved</span></td>
+            <td>Add focused tutorials and generated API signatures as the public API grows.</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
   </main>
 

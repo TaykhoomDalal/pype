@@ -248,6 +248,27 @@ tbody tr:nth-child(even) {
   padding: 0.8rem 1rem;
 }
 
+.status {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+}
+
+.status.strong {
+  color: var(--link);
+}
+
+.status.partial {
+  color: #9a6500;
+}
+
+.status.planned {
+  color: var(--muted);
+}
+
 footer {
   border-top: 1px solid var(--border);
   color: var(--muted);

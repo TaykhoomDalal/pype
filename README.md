@@ -2,7 +2,7 @@
 
 PYPE runs phenome-wide association studies (PheWAS), creates PheWAS plots, and performs Mendelian randomization (MR) in Python.
 
-[Documentation](https://taykhoomdalal.github.io/pype/) | [Reference paper](https://doi.org/10.1016/j.patter.2024.100982)
+[Documentation](https://taykhoomdalal.github.io/pype/) | [Roadmap](https://taykhoomdalal.github.io/pype/#roadmap) | [Reference paper](https://doi.org/10.1016/j.patter.2024.100982)
 
 ## Features
 
@@ -24,6 +24,17 @@ Optional annotation dependencies:
 ```bash
 python -m pip install ".[annotations]"
 ```
+
+## Reproduce the paper
+
+The public Mendelian randomization analyses can be rerun from the Le Goallec and Neale Lab summary statistics:
+
+```bash
+python -m pip install -e ".[reproduce]"
+python -m pype.reproduce
+```
+
+See [`reproducibility/README.md`](reproducibility/README.md) for the data boundary and expected outputs.
 
 ## PheWAS
 
