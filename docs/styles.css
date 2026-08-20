@@ -120,7 +120,6 @@ header {
 header p {
   color: #d9efd9;
   margin: 0.5rem auto 0;
-  max-width: 760px;
 }
 
 .actions {
@@ -193,12 +192,7 @@ nav a.current {
 
 main {
   margin: 0 auto;
-  max-width: 1050px;
   padding: 2rem 1.25rem 5rem;
-}
-
-main.wide {
-  max-width: none;
 }
 
 main > section + section {
