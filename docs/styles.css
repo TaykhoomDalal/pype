@@ -120,7 +120,9 @@ header {
   font-weight: 800;
   letter-spacing: 0.08em;
   margin: 0;
+  paint-order: stroke fill;
   text-shadow: 6px 6px 0 #07530b;
+  -webkit-text-stroke: 2px #000000;
 }
 
 header p {
