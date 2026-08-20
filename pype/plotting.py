@@ -213,7 +213,13 @@ def manhattan(results, output, alpha=0.05, correction="bonferroni", title=None, 
 
 	line_segments = []
 	if np.isfinite(significance):
-		ax.axhline(significance, color="red", linestyle="--", linewidth=0.7)
+		ax.axhline(
+			significance,
+			color="red",
+			linestyle="--",
+			linewidth=0.7,
+			label="Significance threshold",
+		)
 		line_segments.append(
 			(ax.get_xlim(), (significance, significance))
 		)
@@ -327,6 +333,7 @@ def volcano(results, output, alpha=0.05, correction="bonferroni", title=None, an
 			s=14,
 			alpha=0.65,
 			linewidths=0.2,
+			label="Not significant",
 		)
 		for mask, marker, color, label in [
 			(is_significant & (predictor_data["beta"] >= 0), "^", "tab:red", "Positive beta"),
@@ -358,7 +365,13 @@ def volcano(results, output, alpha=0.05, correction="bonferroni", title=None, an
 
 		line_segments = []
 		if np.isfinite(significance):
-			ax.axhline(significance, color="red", linestyle="--", linewidth=0.7)
+			ax.axhline(
+				significance,
+				color="red",
+				linestyle="--",
+				linewidth=0.7,
+				label="Significance threshold",
+			)
 			line_segments.append(
 				(ax.get_xlim(), (significance, significance))
 			)
@@ -368,6 +381,7 @@ def volcano(results, output, alpha=0.05, correction="bonferroni", title=None, an
 			linestyle="--",
 			linewidth=0.8,
 			zorder=0,
+			label="Zero effect",
 		)
 		line_segments.append(((0, 0), ax.get_ylim()))
 		ax.set_xlabel("Effect size")
