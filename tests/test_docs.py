@@ -80,7 +80,7 @@ def test_sitemap_lists_public_pages():
 def test_reproduction_command_is_not_indented():
 	page = (ROOT / "docs/reproducibility.html").read_text()
 	assert (
-		"python -m pip install -e . openpyxl\n"
+		"python -m pip install pype-mr openpyxl\n"
 		"python reproducibility/reproduce_paper.py \\\n"
 		"  --output paper_reproduction"
 	) in page

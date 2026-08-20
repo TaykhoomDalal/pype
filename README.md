@@ -35,7 +35,7 @@ python -m pip install "pype-mr[annotations]"
 The public Mendelian randomization analyses can be rerun from a GitHub source checkout using the Le Goallec and Neale Lab summary statistics:
 
 ```bash
-python -m pip install -e . openpyxl
+python -m pip install pype-mr openpyxl
 python reproducibility/reproduce_paper.py
 ```
 

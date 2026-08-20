@@ -14,7 +14,7 @@ The first run streams about 2 GB of compressed public GWAS files and saves only 
 From a GitHub source checkout:
 
 ```bash
-python -m pip install -e . openpyxl
+python -m pip install pype-mr openpyxl
 python reproducibility/reproduce_paper.py
 ```
 
