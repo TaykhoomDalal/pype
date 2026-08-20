@@ -3,7 +3,7 @@ from .mr import analyze as mendelian_randomization
 from .phewas import phenome_wide_association
 
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __all__ = [
 	"add_phenotype_metadata",
 	"mendelian_randomization",

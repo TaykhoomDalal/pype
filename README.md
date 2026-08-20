@@ -21,13 +21,13 @@ PYPE runs phenome-wide association studies (PheWAS), creates PheWAS plots, and p
 ## Installation
 
 ```bash
-python -m pip install .
+python -m pip install pype-mr
 ```
 
 Optional annotation dependencies:
 
 ```bash
-python -m pip install ".[annotations]"
+python -m pip install "pype-mr[annotations]"
 ```
 
 ## Reproduce the paper

@@ -36,14 +36,14 @@
       <article class="docs-content">
         <h1>Install and run PYPE</h1>
         <h2>Install PYPE</h2>
-        <p>Install the current development branch directly from GitHub:</p>
-        <pre><code>python -m pip install "git+https://github.com/TaykhoomDalal/pype.git@development"</code></pre>
+        <p>Install PYPE from PyPI:</p>
+        <pre><code>python -m pip install pype-mr</code></pre>
         <p>For an editable checkout with tests:</p>
-        <pre><code>git clone --branch development https://github.com/TaykhoomDalal/pype.git
+        <pre><code>git clone https://github.com/TaykhoomDalal/pype.git
 cd pype
 python -m pip install -e ".[test]"</code></pre>
         <p>Functional variant and gene summaries use optional BioThings clients:</p>
-        <pre><code>python -m pip install ".[annotations]"</code></pre>
+        <pre><code>python -m pip install "pype-mr[annotations]"</code></pre>
 
         <h2 id="choose">Choose a workflow</h2>
         <div class="grid">
