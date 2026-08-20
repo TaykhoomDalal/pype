@@ -196,7 +196,7 @@ main {
 }
 
 main > section + section {
-  margin-top: 5rem;
+  margin-top: 3.5rem;
 }
 
 [id] {

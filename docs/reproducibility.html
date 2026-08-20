@@ -85,19 +85,19 @@ python reproducibility/reproduce_paper.py \
         <h2 id="comparison">Table 1 comparison</h2>
         <p>All eight legacy calculations match the published values within the displayed precision. The current IVW standard error follows the TwoSampleMR under-dispersion correction.</p>
         <table class="comparison" tabindex="0">
-          <caption>Published IVW values reproduced by the legacy calculation.</caption>
+          <caption>Published IVW values and results from the corrected current implementation.</caption>
           <thead>
-            <tr><th scope="col">Predictor</th><th scope="col">Outcome</th><th scope="col">Published beta</th><th scope="col">Published SE</th><th scope="col">Published p</th></tr>
+            <tr><th scope="col">Predictor</th><th scope="col">Outcome</th><th scope="col">Published beta</th><th scope="col">Published SE</th><th scope="col">Published p</th><th scope="col">Current SE</th><th scope="col">Current p</th></tr>
           </thead>
           <tbody>
-            <tr><td>Abdomen</td><td>HbA1C</td><td>0.0265</td><td>0.0204</td><td>0.194</td></tr>
-            <tr><td>Abdomen</td><td>BMI</td><td>0.0061</td><td>0.1158</td><td>0.958</td></tr>
-            <tr><td>Abdomen</td><td>Glucose</td><td>-0.0151</td><td>0.0132</td><td>0.254</td></tr>
-            <tr><td>Abdomen</td><td>Waist circumference</td><td>0.3556</td><td>0.1086</td><td>0.0011</td></tr>
-            <tr><td>Liver</td><td>HbA1C</td><td>0.0153</td><td>0.0441</td><td>0.729</td></tr>
-            <tr><td>Liver</td><td>BMI</td><td>-0.0122</td><td>0.1231</td><td>0.921</td></tr>
-            <tr><td>Liver</td><td>Glucose</td><td>0.0066</td><td>0.0072</td><td>0.358</td></tr>
-            <tr><td>Liver</td><td>Waist circumference</td><td>0.2509</td><td>0.1570</td><td>0.110</td></tr>
+            <tr><td>Abdomen</td><td>HbA1C</td><td>0.0265</td><td>0.0204</td><td>0.194</td><td>0.0614</td><td>0.666</td></tr>
+            <tr><td>Abdomen</td><td>BMI</td><td>0.0061</td><td>0.1158</td><td>0.958</td><td>0.1158</td><td>0.957</td></tr>
+            <tr><td>Abdomen</td><td>Glucose</td><td>-0.0151</td><td>0.0132</td><td>0.254</td><td>0.0132</td><td>0.254</td></tr>
+            <tr><td>Abdomen</td><td>Waist circumference</td><td>0.3556</td><td>0.1086</td><td>0.0011</td><td>0.1121</td><td>0.0015</td></tr>
+            <tr><td>Liver</td><td>HbA1C</td><td>0.0153</td><td>0.0441</td><td>0.729</td><td>0.0441</td><td>0.730</td></tr>
+            <tr><td>Liver</td><td>BMI</td><td>-0.0122</td><td>0.1231</td><td>0.921</td><td>0.1229</td><td>0.921</td></tr>
+            <tr><td>Liver</td><td>Glucose</td><td>0.0066</td><td>0.0072</td><td>0.358</td><td>0.0075</td><td>0.380</td></tr>
+            <tr><td>Liver</td><td>Waist circumference</td><td>0.2509</td><td>0.1570</td><td>0.110</td><td>0.1570</td><td>0.110</td></tr>
           </tbody>
         </table>
 
